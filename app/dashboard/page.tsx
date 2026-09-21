@@ -8,6 +8,8 @@ import { CalorieRing } from '@/components/CalorieRing';
 import { MacroBar } from '@/components/MacroBar';
 import { PhotoUploader } from '@/components/PhotoUploader';
 import { BottomNav } from '@/components/BottomNav';
+import { StreakCard } from '@/components/StreakCard';
+import { ChatCoach } from '@/components/ChatCoach';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Loader2 } from 'lucide-react';
 
@@ -18,9 +20,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/auth');
       return;
@@ -43,6 +43,7 @@ export default function Dashboard() {
     const { data: m } = await supabase
       .from('meals')
       .select('*')
+      .eq('user_id', user.id)
       .gte('eaten_at', start.toISOString())
       .order('eaten_at', { ascending: false });
 
@@ -86,10 +87,7 @@ export default function Dashboard() {
         <div>
           <p className="text-white/50 text-sm">Сьогодні</p>
           <h1 className="text-2xl font-bold">
-            {new Date().toLocaleDateString('uk-UA', {
-              day: 'numeric',
-              month: 'long',
-            })}
+            {new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
           </h1>
         </div>
         <div className="glass px-4 py-2 text-sm">{goalLabel}</div>
@@ -98,26 +96,13 @@ export default function Dashboard() {
       <section className="glass p-6 mb-5 glow fade-up flex flex-col items-center">
         <CalorieRing eaten={eaten} norm={profile.daily_norm} />
         <div className="w-full mt-6 space-y-3">
-          <MacroBar
-            label="Білки"
-            current={Math.round(protein)}
-            target={target.protein}
-            color="#60a5fa"
-          />
-          <MacroBar
-            label="Жири"
-            current={Math.round(fat)}
-            target={target.fat}
-            color="#fbbf24"
-          />
-          <MacroBar
-            label="Вуглеводи"
-            current={Math.round(carbs)}
-            target={target.carbs}
-            color="#34d399"
-          />
+          <MacroBar label="Білки" current={Math.round(protein)} target={target.protein} color="#60a5fa" />
+          <MacroBar label="Жири" current={Math.round(fat)} target={target.fat} color="#fbbf24" />
+          <MacroBar label="Вуглеводи" current={Math.round(carbs)} target={target.carbs} color="#34d399" />
         </div>
       </section>
+
+      <StreakCard userId={profile.id} />
 
       <PhotoUploader userId={profile.id} onAdd={load} />
 
@@ -139,11 +124,7 @@ export default function Dashboard() {
                 className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0"
               >
                 {m.image_url ? (
-                  <img
-                    src={m.image_url}
-                    alt=""
-                    className="w-14 h-14 rounded-xl object-cover"
-                  />
+                  <img src={m.image_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center text-2xl">
                     🍽️
@@ -152,12 +133,8 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{m.name}</p>
                   <p className="text-white/40 text-xs">
-                    {new Date(m.eaten_at).toLocaleTimeString('uk-UA', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                    {' · '}Б{Math.round(m.protein)} Ж{Math.round(m.fat)} В
-                    {Math.round(m.carbs)}
+                    {new Date(m.eaten_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                    {' · '}Б{Math.round(m.protein)} Ж{Math.round(m.fat)} В{Math.round(m.carbs)}
                   </p>
                 </div>
                 <div className="text-right">
@@ -176,6 +153,7 @@ export default function Dashboard() {
         )}
       </section>
 
+      <ChatCoach profile={profile} />
       <BottomNav />
     </main>
   );

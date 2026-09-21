@@ -1,0 +1,10 @@
+{
+  "name": "CalorieAI — Розумний щоденник калорій",
+  "short_name": "CalorieAI",
+  "description": "Розпізнай калорії за фото з ШІ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070c",
+  "theme_color": "#07070c",
+  "orientation": "portrait"
+}
