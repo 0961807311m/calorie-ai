@@ -10,7 +10,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Auth%20%2B%20DB-3ecf8e?logo=supabase)](https://supabase.com)
 [![Gemini](https://img.shields.io/badge/Gemini-3.5%20Flash--Lite-4285F4?logo=google)](https://ai.google.dev)
 
-[**🚀 Live Demo**](https://4ai.onrender.com)
+[**🚀 Live Demo**](https://calorie-ai-heln.onrender.com)
 
 </div>
 
