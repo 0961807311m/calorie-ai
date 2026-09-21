@@ -6,31 +6,61 @@ import { calcNorm } from '@/lib/nutrition';
 import { motion } from 'framer-motion';
 
 export default function Onboarding() {
-  const [form, setForm] = useState({
-    sex: 'm' as 'm' | 'f',
-    age: 25,
-    weight: 70,
-    height: 175,
-    activity: 'light' as 'sed' | 'light' | 'mod' | 'high' | 'ath',
-    goal: 'lose' as 'lose' | 'keep' | 'gain',
-  });
+  const [sex, setSex] = useState<'m' | 'f'>('m');
+  const [age, setAge] = useState('');
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
+  const [activity, setActivity] = useState<'sed' | 'light' | 'mod' | 'high' | 'ath'>('light');
+  const [goal, setGoal] = useState<'lose' | 'keep' | 'gain'>('lose');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function submit() {
-    setLoading(true);
     setError(null);
+
+    const ageNum = parseInt(age, 10);
+    const weightNum = parseFloat(weight);
+    const heightNum = parseFloat(height);
+
+    if (!ageNum || ageNum < 10 || ageNum > 120) {
+      setError('Введи коректний вік (10-120)');
+      return;
+    }
+    if (!weightNum || weightNum < 30 || weightNum > 300) {
+      setError('Введи коректну вагу (30-300 кг)');
+      return;
+    }
+    if (!heightNum || heightNum < 100 || heightNum > 250) {
+      setError('Введи коректний зріст (100-250 см)');
+      return;
+    }
+
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/auth');
         return;
       }
-      const norm = calcNorm({ ...form, id: user.id, daily_norm: 0 });
+      const norm = calcNorm({
+        id: user.id,
+        sex,
+        age: ageNum,
+        weight: weightNum,
+        height: heightNum,
+        activity,
+        goal,
+        daily_norm: 0,
+      });
       const { error } = await supabase.from('profiles').upsert({
         id: user.id,
-        ...form,
+        sex,
+        age: ageNum,
+        weight: weightNum,
+        height: heightNum,
+        activity,
+        goal,
         daily_norm: norm,
       });
       if (error) throw error;
@@ -53,39 +83,42 @@ export default function Onboarding() {
 
         <div className="grid grid-cols-2 gap-4">
           <select
-            value={form.sex}
-            onChange={(e) => setForm({ ...form, sex: e.target.value as any })}
+            value={sex}
+            onChange={(e) => setSex(e.target.value as any)}
             className="rounded-xl px-4 py-3"
           >
             <option value="m">Чоловік</option>
             <option value="f">Жінка</option>
           </select>
           <input
-            type="number"
-            value={form.age}
-            onChange={(e) => setForm({ ...form, age: +e.target.value })}
+            type="text"
+            inputMode="numeric"
+            value={age}
+            onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, ''))}
             placeholder="Вік"
             className="rounded-xl px-4 py-3"
           />
           <input
-            type="number"
-            value={form.weight}
-            onChange={(e) => setForm({ ...form, weight: +e.target.value })}
+            type="text"
+            inputMode="decimal"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value.replace(/[^0-9.]/g, ''))}
             placeholder="Вага (кг)"
             className="rounded-xl px-4 py-3"
           />
           <input
-            type="number"
-            value={form.height}
-            onChange={(e) => setForm({ ...form, height: +e.target.value })}
+            type="text"
+            inputMode="decimal"
+            value={height}
+            onChange={(e) => setHeight(e.target.value.replace(/[^0-9.]/g, ''))}
             placeholder="Зріст (см)"
             className="rounded-xl px-4 py-3"
           />
         </div>
 
         <select
-          value={form.activity}
-          onChange={(e) => setForm({ ...form, activity: e.target.value as any })}
+          value={activity}
+          onChange={(e) => setActivity(e.target.value as any)}
           className="w-full rounded-xl px-4 py-3"
         >
           <option value="sed">Сидячий спосіб життя</option>
@@ -96,17 +129,17 @@ export default function Onboarding() {
         </select>
 
         <div className="grid grid-cols-3 gap-2">
-          {[
+          {([
             ['lose', '🔥 Схуднути'],
             ['keep', '⚖️ Підтримка'],
             ['gain', '💪 Набрати'],
-          ].map(([g, l]) => (
+          ] as const).map(([g, l]) => (
             <button
               key={g}
               type="button"
-              onClick={() => setForm({ ...form, goal: g as any })}
+              onClick={() => setGoal(g)}
               className={`py-4 rounded-2xl text-sm transition-all ${
-                form.goal === g ? 'btn-grad ring-2 ring-purple-400' : 'glass'
+                goal === g ? 'btn-grad ring-2 ring-purple-400' : 'glass'
               }`}
             >
               {l}
