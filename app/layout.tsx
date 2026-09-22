@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { UpdateBanner } from '@/components/UpdateBanner';
 
 export const metadata: Metadata = {
   title: 'CalorieAI — Розумний щоденник калорій',
@@ -30,7 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uk">
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <UpdateBanner />
+          {children}
+        </ThemeProvider>
         <PWARegister />
       </body>
     </html>
