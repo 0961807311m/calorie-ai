@@ -1,8 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BrowserMultiFormatReader } from '@zxing/browser';
-import { DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { Scan, X, Loader2, Check, Camera, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -32,7 +30,6 @@ export function BarcodeScanner({
   const [manualCode, setManualCode] = useState('');
   const [portionGrams, setPortionGrams] = useState('100');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<any>(null);
 
   const stopScanning = useCallback(() => {
@@ -41,9 +38,6 @@ export function BarcodeScanner({
         controlsRef.current.stop();
       } catch {}
       controlsRef.current = null;
-    }
-    if (readerRef.current) {
-      readerRef.current = null;
     }
     setScanning(false);
   }, []);
@@ -71,7 +65,7 @@ export function BarcodeScanner({
       const data = await res.json();
 
       if (data.error === 'product_not_found') {
-        setError('Продукт не знайдено. Спробуй інший або введи калорії вручну.');
+        setError('Продукт не знайдено. Спробуй інший або додай вручну.');
         return;
       }
       if (data.error) throw new Error(data.error);
@@ -91,6 +85,9 @@ export function BarcodeScanner({
     setScanning(true);
 
     try {
+      const { BrowserMultiFormatReader } = await import('@zxing/browser');
+      const { DecodeHintType, BarcodeFormat } = await import('@zxing/library');
+
       const hints = new Map();
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [
         BarcodeFormat.EAN_13,
@@ -101,22 +98,23 @@ export function BarcodeScanner({
       ]);
 
       const reader = new BrowserMultiFormatReader(hints);
-      readerRef.current = reader;
 
       const controls = await reader.decodeFromVideoDevice(
         undefined,
         videoRef.current!,
-        (result, err) => {
+        (result: any) => {
           if (result) {
             const code = result.getText();
-            console.log('Scanned:', code);
             fetchProduct(code);
           }
         }
       );
       controlsRef.current = controls;
     } catch (e: any) {
-      setError('Не вдалось відкрити камеру. Дозволь доступ або введи штрих-код вручну.');
+      console.error('Scanner error:', e);
+      setError(
+        'Не вдалось відкрити камеру. Дозволь доступ або введи штрих-код вручну.'
+      );
       setScanning(false);
     }
   }
@@ -164,47 +162,53 @@ export function BarcodeScanner({
 
   return (
     <>
-      {/* Кнопка вгорі справа (додається в dashboard) */}
-      <motion.button
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+      {/* Кнопка сканера — ЯСКРАВА, завжди видима */}
+      <button
         onClick={() => setOpen(true)}
-        className="glass p-2.5 rounded-full hover:bg-white/10 transition"
+        className="btn-grad p-2.5 rounded-full shadow-lg hover:scale-105 transition-transform"
         title="Сканер штрих-коду"
+        aria-label="Сканер штрих-коду"
       >
-        <Scan className="w-5 h-5" />
-      </motion.button>
+        <Scan className="w-5 h-5 text-white" />
+      </button>
 
       <AnimatePresence>
         {open && (
           <>
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 bg-black/70 z-40"
+              className="fixed inset-0 bg-black/80"
+              style={{ zIndex: 9998 }}
             />
 
+            {/* Modal */}
             <motion.div
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              className="fixed inset-x-2 top-4 bottom-24 z-50 glass flex flex-col overflow-hidden shadow-2xl"
-              style={{ borderRadius: 24 }}
+              className="fixed inset-x-2 top-4 bottom-4 rounded-3xl flex flex-col overflow-hidden shadow-2xl"
+              style={{
+                zIndex: 9999,
+                background: '#0d0d14',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <Scan className="w-5 h-5 text-purple-400" />
                   <div>
-                    <p className="font-semibold">Сканер штрих-коду</p>
-                    <p className="text-xs opacity-40">Спрямуй камеру на EAN/UPC</p>
+                    <p className="font-semibold text-white">Сканер штрих-коду</p>
+                    <p className="text-xs text-white/40">Спрямуй камеру на EAN/UPC</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-2 hover:bg-white/10 rounded-full transition"
+                  className="p-2 hover:bg-white/10 rounded-full transition text-white"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -212,7 +216,6 @@ export function BarcodeScanner({
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Відео */}
                 {!product && (
                   <div className="relative">
                     <video
@@ -223,10 +226,10 @@ export function BarcodeScanner({
                     />
                     {!scanning && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-2xl gap-3">
-                        <Camera className="w-10 h-10 opacity-50" />
+                        <Camera className="w-10 h-10 text-white/50" />
                         <button
                           onClick={startScanning}
-                          className="btn-grad px-6 py-3 rounded-xl font-medium"
+                          className="btn-grad px-6 py-3 rounded-xl font-medium text-white"
                         >
                           Запустити камеру
                         </button>
@@ -243,39 +246,44 @@ export function BarcodeScanner({
                   </div>
                 )}
 
-                {/* Ручний ввід */}
                 {!product && !scanning && (
                   <div className="space-y-2">
-                    <p className="text-xs opacity-50 text-center">або введи штрих-код вручну</p>
+                    <p className="text-xs text-white/50 text-center">
+                      або введи штрих-код вручну
+                    </p>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         inputMode="numeric"
                         value={manualCode}
-                        onChange={(e) => setManualCode(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="Наприклад: 4820012345678"
-                        className="flex-1 rounded-xl px-4 py-3"
+                        onChange={(e) =>
+                          setManualCode(e.target.value.replace(/[^0-9]/g, ''))
+                        }
+                        placeholder="Наприклад: 5449000000996"
+                        className="flex-1 rounded-xl px-4 py-3 text-white"
                       />
                       <button
                         onClick={() => manualCode && fetchProduct(manualCode)}
                         disabled={!manualCode || loading}
-                        className="btn-grad rounded-xl px-4 disabled:opacity-50"
+                        className="btn-grad rounded-xl px-4 disabled:opacity-50 text-white"
                       >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Знайти'}
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Знайти'
+                        )}
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Loading */}
                 {loading && (
                   <div className="flex items-center justify-center gap-3 py-6">
                     <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
-                    <span className="opacity-70">Шукаю продукт...</span>
+                    <span className="text-white/70">Шукаю продукт...</span>
                   </div>
                 )}
 
-                {/* Error */}
                 {error && (
                   <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 text-sm text-red-300 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -283,7 +291,6 @@ export function BarcodeScanner({
                   </div>
                 )}
 
-                {/* Product found */}
                 {product && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -299,33 +306,38 @@ export function BarcodeScanner({
                         />
                       )}
                       <div className="flex-1">
-                        <p className="font-semibold">{product.name}</p>
+                        <p className="font-semibold text-white">{product.name}</p>
                         {product.brand && (
-                          <p className="text-xs opacity-50">{product.brand}</p>
+                          <p className="text-xs text-white/50">{product.brand}</p>
                         )}
-                        <p className="text-xs opacity-40 mt-1">
+                        <p className="text-xs text-white/40 mt-1">
                           {product.barcode}
                         </p>
                       </div>
                     </div>
 
-                    {/* Порція */}
                     <div>
-                      <label className="text-xs opacity-60 mb-2 block">Порція (грам)</label>
+                      <label className="text-xs text-white/60 mb-2 block">
+                        Порція (грам)
+                      </label>
                       <div className="flex gap-2">
                         <input
                           type="text"
                           inputMode="numeric"
                           value={portionGrams}
-                          onChange={(e) => setPortionGrams(e.target.value.replace(/[^0-9]/g, ''))}
-                          className="flex-1 rounded-xl px-4 py-3"
+                          onChange={(e) =>
+                            setPortionGrams(e.target.value.replace(/[^0-9]/g, ''))
+                          }
+                          className="flex-1 rounded-xl px-4 py-3 text-white"
                         />
                         {[50, 100, 200, 250].map((g) => (
                           <button
                             key={g}
                             onClick={() => setPortionGrams(String(g))}
                             className={`px-3 rounded-xl text-sm ${
-                              portionGrams === String(g) ? 'btn-grad' : 'glass'
+                              portionGrams === String(g)
+                                ? 'btn-grad text-white'
+                                : 'bg-white/5 text-white/70'
                             }`}
                           >
                             {g}
@@ -334,7 +346,6 @@ export function BarcodeScanner({
                       </div>
                     </div>
 
-                    {/* Розрахунок на обрану порцію */}
                     {(() => {
                       const g = parseFloat(portionGrams) || 100;
                       const ratio = g / 100;
@@ -349,8 +360,8 @@ export function BarcodeScanner({
                               ['В', `${Math.round(product.per_100g.carbs * ratio * 10) / 10}г`],
                             ].map(([l, v]) => (
                               <div key={String(l)} className="bg-white/5 rounded-xl py-2">
-                                <p className="font-bold">{v}</p>
-                                <p className="text-xs opacity-50">{l}</p>
+                                <p className="font-bold text-white">{v}</p>
+                                <p className="text-xs text-white/50">{l}</p>
                               </div>
                             ))}
                           </div>
@@ -358,7 +369,6 @@ export function BarcodeScanner({
                       );
                     })()}
 
-                    {/* Кнопки */}
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -366,14 +376,14 @@ export function BarcodeScanner({
                           setError(null);
                           setManualCode('');
                         }}
-                        className="glass flex-1 py-3 rounded-xl font-medium"
+                        className="flex-1 py-3 rounded-xl font-medium bg-white/5 text-white/80"
                       >
                         Сканувати ще
                       </button>
                       <button
                         onClick={save}
                         disabled={loading}
-                        className="btn-grad flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="btn-grad flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 text-white"
                       >
                         {loading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
