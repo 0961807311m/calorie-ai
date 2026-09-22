@@ -2,31 +2,50 @@
 
 :root {
   --bg: #07070c;
+  --text: #ffffff;
+  --card: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: rgba(255, 255, 255, 0.5);
   --accent-1: #a78bfa;
   --accent-2: #ec4899;
+}
+
+.theme-light {
+  --bg: #f5f5f7;
+  --text: #1a1a2e;
+  --card: rgba(0, 0, 0, 0.03);
+  --border: rgba(0, 0, 0, 0.08);
+  --muted: rgba(0, 0, 0, 0.5);
 }
 
 * { -webkit-tap-highlight-color: transparent; }
 
 body {
   background: var(--bg);
-  color: white;
+  color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 58, 237, 0.25), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(236, 72, 153, 0.15), transparent);
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 58, 237, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(236, 72, 153, 0.1), transparent);
   background-attachment: fixed;
 }
 
+.theme-light body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 58, 237, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(236, 72, 153, 0.05), transparent);
+}
+
 .glass {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--card);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: 24px;
 }
 
-.glow { box-shadow: 0 0 80px rgba(124, 58, 237, 0.25); }
+.glow { box-shadow: 0 0 80px rgba(124, 58, 237, 0.15); }
 
 .gradient-text {
   background: linear-gradient(135deg, var(--accent-1), var(--accent-2), #fb923c);
@@ -43,22 +62,34 @@ body {
 .btn-grad:hover { transform: translateY(-2px); box-shadow: 0 20px 50px rgba(236, 72, 153, 0.4); }
 .btn-grad:active { transform: scale(0.98); }
 
-input, select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
+input, select, textarea {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
   transition: all 0.2s;
 }
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent-1);
   box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.15);
 }
-input::placeholder { color: rgba(255, 255, 255, 0.4); }
-option { background: #1a1a2e; color: white; }
+input::placeholder { color: var(--muted); }
+option { background: var(--bg); color: var(--text); }
 
 .fade-up { animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility classes для text colors */
+.text-white { color: var(--text); }
+.text-white\/40 { color: var(--muted); }
+.text-white\/50 { color: var(--muted); }
+.text-white\/60 { color: var(--muted); }
+.text-white\/70 { color: var(--muted); }
+
+.theme-light .glass {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }

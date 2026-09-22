@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { macroSplit } from '@/lib/nutrition';
+import { applyTheme, getStoredTheme } from '@/lib/theme';
 import type { Profile, Meal } from '@/lib/types';
 import { CalorieRing } from '@/components/CalorieRing';
 import { MacroBar } from '@/components/MacroBar';
@@ -10,6 +11,10 @@ import { PhotoUploader } from '@/components/PhotoUploader';
 import { BottomNav } from '@/components/BottomNav';
 import { StreakCard } from '@/components/StreakCard';
 import { ChatCoach } from '@/components/ChatCoach';
+import { DailyAdvice } from '@/components/DailyAdvice';
+import { NutritionReport } from '@/components/NutritionReport';
+import { DrinkUploader } from '@/components/DrinkUploader';
+import { WeightBadge } from '@/components/WeightEditor';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Loader2 } from 'lucide-react';
 
@@ -38,6 +43,9 @@ export default function Dashboard() {
     }
     setProfile(p);
 
+    // Застосовуємо тему користувача
+    if (p.theme) applyTheme(p.theme);
+
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const { data: m } = await supabase
@@ -61,6 +69,13 @@ export default function Dashboard() {
     setMeals((prev) => prev.filter((m) => m.id !== id));
   }
 
+  async function updateMealCalories(id: string, newCalories: number) {
+    await supabase.from('meals').update({ calories: newCalories }).eq('id', id);
+    setMeals((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, calories: newCalories } : m))
+    );
+  }
+
   if (loading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -73,6 +88,7 @@ export default function Dashboard() {
   const protein = meals.reduce((s, m) => s + Number(m.protein || 0), 0);
   const fat = meals.reduce((s, m) => s + Number(m.fat || 0), 0);
   const carbs = meals.reduce((s, m) => s + Number(m.carbs || 0), 0);
+  const sugar = meals.reduce((s, m) => s + Number(m.sugar || 0), 0);
   const target = macroSplit(profile.daily_norm, profile.goal);
 
   const goalLabel = {
@@ -85,9 +101,12 @@ export default function Dashboard() {
     <main className="max-w-2xl mx-auto p-4 pb-32">
       <header className="flex items-center justify-between mb-6 fade-up">
         <div>
-          <p className="text-white/50 text-sm">Сьогодні</p>
+          <p className="text-sm opacity-50">Сьогодні</p>
           <h1 className="text-2xl font-bold">
-            {new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString('uk-UA', {
+              day: 'numeric',
+              month: 'long',
+            })}
           </h1>
         </div>
         <div className="glass px-4 py-2 text-sm">{goalLabel}</div>
@@ -99,17 +118,31 @@ export default function Dashboard() {
           <MacroBar label="Білки" current={Math.round(protein)} target={target.protein} color="#60a5fa" />
           <MacroBar label="Жири" current={Math.round(fat)} target={target.fat} color="#fbbf24" />
           <MacroBar label="Вуглеводи" current={Math.round(carbs)} target={target.carbs} color="#34d399" />
+          {sugar > 0 && (
+            <MacroBar
+              label="Цукор"
+              current={Math.round(sugar)}
+              target={50}
+              color="#f87171"
+            />
+          )}
         </div>
       </section>
 
+      <DailyAdvice meals={meals} profile={profile} />
+
       <StreakCard userId={profile.id} />
 
+      <NutritionReport userId={profile.id} profile={profile} />
+
       <PhotoUploader userId={profile.id} onAdd={load} />
+
+      <DrinkUploader userId={profile.id} onAdd={load} />
 
       <section className="glass p-6 mt-5 fade-up">
         <h3 className="font-semibold mb-3">🍽️ Страви ({meals.length})</h3>
         {meals.length === 0 ? (
-          <p className="text-white/40 text-sm text-center py-6">
+          <p className="text-sm opacity-40 text-center py-6">
             Ще немає записів. Додай першу страву!
           </p>
         ) : (
@@ -124,26 +157,35 @@ export default function Dashboard() {
                 className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0"
               >
                 {m.image_url ? (
-                  <img src={m.image_url} alt="" className="w-14 h-14 rounded-xl object-cover" />
+                  <img
+                    src={m.image_url}
+                    alt=""
+                    className="w-14 h-14 rounded-xl object-cover"
+                  />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center text-2xl">
-                    🍽️
+                    {m.is_drink ? '🥤' : '🍽️'}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{m.name}</p>
-                  <p className="text-white/40 text-xs">
-                    {new Date(m.eaten_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
-                    {' · '}Б{Math.round(m.protein)} Ж{Math.round(m.fat)} В{Math.round(m.carbs)}
+                  <p className="text-xs opacity-40">
+                    {new Date(m.eaten_at).toLocaleTimeString('uk-UA', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                    {' · '}Б{Math.round(m.protein)} Ж{Math.round(m.fat)} В
+                    {Math.round(m.carbs)}
+                    {m.sugar ? ` · Цукор ${Math.round(m.sugar)}г` : ''}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">{m.calories}</p>
-                  <p className="text-white/40 text-xs">ккал</p>
-                </div>
+                <WeightBadge
+                  item={m}
+                  onUpdate={(newCal) => updateMealCalories(m.id, newCal)}
+                />
                 <button
                   onClick={() => deleteMeal(m.id)}
-                  className="p-2 text-white/30 hover:text-red-400 transition-colors"
+                  className="p-2 opacity-30 hover:text-red-400 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

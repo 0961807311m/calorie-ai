@@ -7,6 +7,7 @@ export type Profile = {
   activity: 'sed' | 'light' | 'mod' | 'high' | 'ath';
   goal: 'lose' | 'keep' | 'gain';
   daily_norm: number;
+  theme?: 'dark' | 'light';
 };
 
 export type Meal = {
@@ -19,4 +20,19 @@ export type Meal = {
   portion?: string;
   image_url?: string;
   eaten_at: string;
+  sugar?: number;
+  is_drink?: boolean;
+  volume_ml?: number;
+};
+
+export type DailyReport = {
+  id: string;
+  date: string;
+  report: string;
+};
+
+export type NutritionReport = {
+  id: string;
+  week_start: string;
+  report: string;
 };
