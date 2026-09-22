@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { macroSplit } from '@/lib/nutrition';
-import { applyTheme, getStoredTheme } from '@/lib/theme';
+import { applyTheme } from '@/lib/theme';
 import type { Profile, Meal } from '@/lib/types';
 import { CalorieRing } from '@/components/CalorieRing';
 import { MacroBar } from '@/components/MacroBar';
@@ -15,6 +15,7 @@ import { DailyAdvice } from '@/components/DailyAdvice';
 import { NutritionReport } from '@/components/NutritionReport';
 import { DrinkUploader } from '@/components/DrinkUploader';
 import { WeightBadge } from '@/components/WeightEditor';
+import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Loader2 } from 'lucide-react';
 
@@ -43,7 +44,6 @@ export default function Dashboard() {
     }
     setProfile(p);
 
-    // Застосовуємо тему користувача
     if (p.theme) applyTheme(p.theme);
 
     const start = new Date();
@@ -99,7 +99,7 @@ export default function Dashboard() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 pb-32">
-      <header className="flex items-center justify-between mb-6 fade-up">
+      <header className="flex items-center justify-between mb-6 fade-up gap-2">
         <div>
           <p className="text-sm opacity-50">Сьогодні</p>
           <h1 className="text-2xl font-bold">
@@ -109,7 +109,10 @@ export default function Dashboard() {
             })}
           </h1>
         </div>
-        <div className="glass px-4 py-2 text-sm">{goalLabel}</div>
+        <div className="flex items-center gap-2">
+          <div className="glass px-3 py-2 text-sm">{goalLabel}</div>
+          <BarcodeScanner userId={profile.id} onAdd={load} />
+        </div>
       </header>
 
       <section className="glass p-6 mb-5 glow fade-up flex flex-col items-center">
