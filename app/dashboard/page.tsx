@@ -25,7 +25,23 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showFullPreloader, setShowFullPreloader] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // ✅ Гідратація: mounted = true тільки на клієнті
+  useEffect(() => {
+    setMounted(true);
+
+    // Перевірка прелодера — раз на день
+    const today = new Date().toISOString().slice(0, 10);
+    const seenDate = localStorage.getItem('preloader-seen-date');
+
+    if (seenDate !== today) {
+      setShowFullPreloader(true);
+      localStorage.setItem('preloader-seen-date', today);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     const {
@@ -80,31 +96,33 @@ export default function Dashboard() {
     );
   }
 
-  // 🍎 ПРЕЛОДЕР — РАЗ НА ДЕНЬ
-  if (loading || !profile) {
-    if (typeof window !== 'undefined') {
-      const today = new Date().toISOString().slice(0, 10);
-      const seenDate = localStorage.getItem('preloader-seen-date');
+  // ⏳ До гідратації — статичне яблучко
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-5xl animate-pulse">🍎</div>
+      </div>
+    );
+  }
 
-      if (seenDate === today) {
-        // Вже бачили сьогодні — швидке яблучко
-        return (
-          <div className="min-h-screen flex items-center justify-center">
-            <motion.div
-              animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-5xl"
-            >
-              🍎
-            </motion.div>
-          </div>
-        );
-      }
-
-      // Перший запуск сьогодні — повний прелодер
-      localStorage.setItem('preloader-seen-date', today);
-    }
+  // 🎬 Повний прелодер — раз на день
+  if (showFullPreloader) {
     return <Preloader />;
+  }
+
+  // ⏳ Завантаження даних — швидке яблучко
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-5xl"
+        >
+          🍎
+        </motion.div>
+      </div>
+    );
   }
 
   const eaten = meals.reduce((s, m) => s + m.calories, 0);
@@ -132,10 +150,7 @@ export default function Dashboard() {
             })}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <PointsCounter userId={profile.id} />
-          <AdditivesScanner userId={profile.id} onAdd={load} />
-        </div>
+        <PointsCounter userId={profile.id} />
       </header>
 
       <section className="glass p-6 mb-5 glow fade-up flex flex-col items-center">
@@ -177,6 +192,10 @@ export default function Dashboard() {
       <NutritionReport userId={profile.id} profile={profile} />
 
       <PhotoUploader userId={profile.id} onAdd={load} />
+
+      <div className="mt-5">
+        <AdditivesScanner userId={profile.id} onAdd={load} />
+      </div>
 
       <DrinkUploader userId={profile.id} onAdd={load} />
 

@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FlaskConical,
   Camera,
-  X,
   Loader2,
   Check,
   AlertTriangle,
   ShieldCheck,
   ShieldAlert,
+  X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -36,7 +36,6 @@ export function AdditivesScanner({
   userId: string;
   onAdd: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -97,7 +96,6 @@ export function AdditivesScanner({
     }
   }
 
-  // 🏆 Додає +1 бал
   async function addPoint() {
     const { data: currentProfile } = await supabase
       .from('profiles')
@@ -113,7 +111,7 @@ export function AdditivesScanner({
     }
   }
 
-  async function saveAsMeal() {
+  async function save() {
     if (!analysis) return;
     setLoading(true);
     try {
@@ -140,8 +138,11 @@ export function AdditivesScanner({
 
       await addPoint();
 
+      // Скидаємо форму
+      setAnalysis(null);
+      setImage(null);
+      if (inputRef.current) inputRef.current.value = '';
       onAdd();
-      close();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -149,8 +150,7 @@ export function AdditivesScanner({
     }
   }
 
-  function close() {
-    setOpen(false);
+  function reset() {
     setAnalysis(null);
     setImage(null);
     setError(null);
@@ -179,239 +179,193 @@ export function AdditivesScanner({
   };
 
   return (
-    <>
-      {/* Кнопка E-добавки */}
-      <button
-        onClick={() => setOpen(true)}
-        className="p-2.5 rounded-full shadow-lg hover:scale-105 transition-transform text-white"
-        style={{ background: 'linear-gradient(135deg, #10b981, #06b6d4)' }}
-        title="Аналіз E-добавок"
-      >
-        <FlaskConical className="w-5 h-5" />
-      </button>
+    <div className="glass p-6 fade-up">
+      <h3 className="font-semibold mb-3 flex items-center gap-2">
+        <FlaskConical className="w-4 h-4 text-emerald-400" /> Аналіз E-добавок
+      </h3>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={close}
-              className="fixed inset-0 bg-black/80"
-              style={{ zIndex: 9998 }}
-            />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+      />
 
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              className="fixed inset-x-2 top-4 bottom-4 rounded-3xl flex flex-col overflow-hidden shadow-2xl"
-              style={{
-                zIndex: 9999,
-                background: '#0d0d14',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <FlaskConical className="w-5 h-5 text-emerald-400" />
-                  <div>
-                    <p className="font-semibold text-white">
-                      Аналіз E-добавок
-                    </p>
-                    <p className="text-xs text-white/40">
-                      Фото етикетки зі складом
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={close}
-                  className="p-2 hover:bg-white/10 rounded-full transition text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      <AnimatePresence mode="wait">
+        {!image ? (
+          <motion.button
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => inputRef.current?.click()}
+            className="w-full border-2 border-dashed border-white/15 rounded-2xl p-8 text-center transition-colors group"
+            style={{ borderColor: 'rgba(16,185,129,0.15)' }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.borderColor = 'rgba(16,185,129,0.15)')
+            }
+          >
+            <Camera className="w-10 h-10 mx-auto mb-3 text-white/40 group-hover:text-emerald-400 transition-colors" />
+            <p className="text-white/70 text-sm">Сфотографуй склад продукту</p>
+            <p className="text-white/40 text-xs mt-1">
+              ШІ перевірить E-добавки та безпечність
+            </p>
+          </motion.button>
+        ) : (
+          <motion.div
+            key="preview"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-3"
+          >
+            {/* Фото */}
+            <div className="relative rounded-2xl overflow-hidden">
+              <img
+                src={image}
+                alt=""
+                className="w-full max-h-48 object-cover"
+              />
+              <button
+                onClick={reset}
+                className="absolute top-2 right-2 bg-black/60 backdrop-blur rounded-full p-1.5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Loading */}
+            {loading && !analysis && (
+              <div className="flex items-center justify-center gap-3 py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+                <span className="text-sm text-white/70">Аналізую склад...</span>
               </div>
+            )}
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) =>
-                    e.target.files?.[0] && handleFile(e.target.files[0])
-                  }
-                />
+            {/* Error */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
 
-                {!image && (
-                  <button
-                    onClick={() => inputRef.current?.click()}
-                    className="w-full border-2 border-dashed border-white/15 rounded-2xl p-8 text-center hover:border-emerald-400/50 transition group"
-                  >
-                    <Camera className="w-10 h-10 mx-auto mb-3 text-white/40 group-hover:text-emerald-400 transition" />
-                    <p className="text-white/70 text-sm">
-                      Сфотографуй склад продукту
-                    </p>
-                    <p className="text-white/40 text-xs mt-1">
-                      ШІ перевірить E-добавки та безпечність
-                    </p>
-                  </button>
-                )}
-
-                {image && (
-                  <div className="relative rounded-2xl overflow-hidden">
-                    <img
-                      src={image}
-                      alt=""
-                      className="w-full max-h-48 object-cover"
-                    />
-                    <button
-                      onClick={close}
-                      className="absolute top-2 right-2 bg-black/60 backdrop-blur rounded-full p-1.5"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-
-                {loading && (
-                  <div className="flex items-center justify-center gap-3 py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
-                    <span className="text-sm text-white/70">
-                      Аналізую склад...
-                    </span>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 text-sm text-red-300">
-                    {error}
-                  </div>
-                )}
-
-                {analysis && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4"
-                  >
-                    {/* Вердикт */}
-                    {(() => {
-                      const cfg = verdictConfig[analysis.verdict];
-                      const Icon = cfg.icon;
-                      return (
-                        <div className={`rounded-2xl p-4 border ${cfg.bg}`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Icon className={`w-5 h-5 ${cfg.color}`} />
-                            <span className={`font-semibold ${cfg.color}`}>
-                              {cfg.label}
-                            </span>
-                          </div>
-                          <p className="text-sm text-white/80 leading-relaxed">
-                            {analysis.verdict_text}
-                          </p>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Небезпечні — ЧЕРВОНИМ */}
-                    {analysis.dangerous.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-1.5">
-                          🚫 Небезпечні ({analysis.dangerous.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {analysis.dangerous.map((a, i) => (
-                            <div
-                              key={i}
-                              className="bg-red-500/10 border border-red-400/30 rounded-xl p-3"
-                            >
-                              <p className="font-semibold text-red-400 underline decoration-red-400/60 decoration-2 underline-offset-2">
-                                {a.code} — {a.name}
-                              </p>
-                              {a.effect && (
-                                <p className="text-xs text-white/70 mt-1">
-                                  Побічні ефекти: {a.effect}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+            {/* Результат аналізу */}
+            {analysis && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                {/* Вердикт */}
+                {(() => {
+                  const cfg = verdictConfig[analysis.verdict];
+                  const Icon = cfg.icon;
+                  return (
+                    <div className={`rounded-2xl p-4 border ${cfg.bg}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon className={`w-5 h-5 ${cfg.color}`} />
+                        <span className={`font-semibold ${cfg.color}`}>
+                          {cfg.label}
+                        </span>
                       </div>
-                    )}
-
-                    {/* Обережно — ЖОВТИМ */}
-                    {analysis.caution.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-1.5">
-                          ⚡ Ризики ({analysis.caution.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {analysis.caution.map((a, i) => (
-                            <div
-                              key={i}
-                              className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-3"
-                            >
-                              <p className="font-semibold text-yellow-400 underline decoration-yellow-400/60 decoration-2 underline-offset-2">
-                                {a.code} — {a.name}
-                              </p>
-                              {a.risk && (
-                                <p className="text-xs text-white/70 mt-1">
-                                  Ризик: {a.risk}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {analysis.safe_count > 0 && (
-                      <p className="text-xs text-white/40 text-center">
-                        ✅ + {analysis.safe_count} безпечних добавок
+                      <p className="text-sm text-white/80 leading-relaxed">
+                        {analysis.verdict_text}
                       </p>
-                    )}
-
-                    {/* Кнопки */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setAnalysis(null);
-                          setImage(null);
-                          if (inputRef.current) inputRef.current.value = '';
-                        }}
-                        className="flex-1 py-3 rounded-xl font-medium bg-white/5 text-white/80"
-                      >
-                        Новий скан
-                      </button>
-                      <button
-                        onClick={saveAsMeal}
-                        disabled={loading}
-                        className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 text-white disabled:opacity-50"
-                        style={{
-                          background:
-                            'linear-gradient(135deg, #10b981, #06b6d4)',
-                        }}
-                      >
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Check className="w-4 h-4" />
-                        )}
-                        Зберегти (+1 бал)
-                      </button>
                     </div>
-                  </motion.div>
+                  );
+                })()}
+
+                {/* Небезпечні — ЧЕРВОНИМ */}
+                {analysis.dangerous.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-1.5">
+                      🚫 Небезпечні ({analysis.dangerous.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {analysis.dangerous.map((a, i) => (
+                        <div
+                          key={i}
+                          className="bg-red-500/10 border border-red-400/30 rounded-xl p-3"
+                        >
+                          <p className="font-semibold text-red-400 underline decoration-red-400/60 decoration-2 underline-offset-2">
+                            {a.code} — {a.name}
+                          </p>
+                          {a.effect && (
+                            <p className="text-xs text-white/70 mt-1">
+                              Побічні ефекти: {a.effect}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </div>
-            </motion.div>
-          </>
+
+                {/* Обережно — ЖОВТИМ */}
+                {analysis.caution.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-1.5">
+                      ⚡ Ризики ({analysis.caution.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {analysis.caution.map((a, i) => (
+                        <div
+                          key={i}
+                          className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-3"
+                        >
+                          <p className="font-semibold text-yellow-400 underline decoration-yellow-400/60 decoration-2 underline-offset-2">
+                            {a.code} — {a.name}
+                          </p>
+                          {a.risk && (
+                            <p className="text-xs text-white/70 mt-1">
+                              Ризик: {a.risk}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {analysis.safe_count > 0 && (
+                  <p className="text-xs text-white/40 text-center">
+                    ✅ + {analysis.safe_count} безпечних добавок
+                  </p>
+                )}
+
+                {/* Кнопки */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={reset}
+                    className="flex-1 py-3 rounded-xl font-medium bg-white/5 text-white/80"
+                  >
+                    Новий скан
+                  </button>
+                  <button
+                    onClick={save}
+                    disabled={loading}
+                    className="flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 text-white disabled:opacity-50"
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                    }}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
+                    Зберегти (+1 бал)
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
