@@ -8,7 +8,6 @@ import {
   Loader2,
   Check,
   X,
-  Sparkles,
   AlertTriangle,
   ShieldCheck,
   ShieldAlert,
@@ -29,25 +28,28 @@ export function QuickActions({
   return (
     <>
       {/* 3 компактні кнопки */}
-      <div className="grid grid-cols-3 gap-2 mb-5 fade-up">
+      <div className="grid grid-cols-3 gap-2.5 mb-5 fade-up">
         <ActionButton
           icon={Camera}
           label="Фото"
-          color="linear-gradient(135deg, #7c3aed, #a78bfa)"
+          gradient="linear-gradient(135deg, #7c3aed, #ec4899)"
+          color="rgba(124,58,237,0.3)"
           active={tab === 'photo'}
           onClick={() => setTab(tab === 'photo' ? null : 'photo')}
         />
         <ActionButton
           icon={FlaskConical}
           label="E-добавки"
-          color="linear-gradient(135deg, #10b981, #06b6d4)"
+          gradient="linear-gradient(135deg, #10b981, #06b6d4)"
+          color="rgba(16,185,129,0.3)"
           active={tab === 'additives'}
           onClick={() => setTab(tab === 'additives' ? null : 'additives')}
         />
         <ActionButton
           icon={Coffee}
           label="Напій"
-          color="linear-gradient(135deg, #f59e0b, #fb923c)"
+          gradient="linear-gradient(135deg, #f59e0b, #fb923c)"
+          color="rgba(245,158,11,0.3)"
           active={tab === 'drink'}
           onClick={() => setTab(tab === 'drink' ? null : 'drink')}
         />
@@ -56,13 +58,28 @@ export function QuickActions({
       {/* Розгорнутий контент */}
       <AnimatePresence mode="wait">
         {tab === 'photo' && (
-          <PhotoTab key="photo" userId={userId} onAdd={onAdd} onClose={() => setTab(null)} />
+          <PhotoTab
+            key="photo"
+            userId={userId}
+            onAdd={onAdd}
+            onClose={() => setTab(null)}
+          />
         )}
         {tab === 'additives' && (
-          <AdditivesTab key="additives" userId={userId} onAdd={onAdd} onClose={() => setTab(null)} />
+          <AdditivesTab
+            key="additives"
+            userId={userId}
+            onAdd={onAdd}
+            onClose={() => setTab(null)}
+          />
         )}
         {tab === 'drink' && (
-          <DrinkTab key="drink" userId={userId} onAdd={onAdd} onClose={() => setTab(null)} />
+          <DrinkTab
+            key="drink"
+            userId={userId}
+            onAdd={onAdd}
+            onClose={() => setTab(null)}
+          />
         )}
       </AnimatePresence>
     </>
@@ -73,12 +90,14 @@ export function QuickActions({
 function ActionButton({
   icon: Icon,
   label,
+  gradient,
   color,
   active,
   onClick,
 }: {
   icon: any;
   label: string;
+  gradient: string;
   color: string;
   active: boolean;
   onClick: () => void;
@@ -87,24 +106,53 @@ function ActionButton({
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className={`relative rounded-2xl p-3 flex flex-col items-center gap-1.5 transition-all ${
-        active ? 'ring-2 ring-white/30' : ''
-      }`}
+      className="relative rounded-2xl p-3 flex flex-col items-center gap-1.5 transition-all overflow-hidden"
       style={{
-        background: active ? color : 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: active ? gradient : 'rgba(255,255,255,0.06)',
+        border: active
+          ? '1px solid rgba(255,255,255,0.4)'
+          : '1px solid rgba(255,255,255,0.12)',
+        boxShadow: active
+          ? '0 8px 24px rgba(0,0,0,0.3)'
+          : `0 0 15px ${color}`,
       }}
     >
-      <Icon
-        className="w-5 h-5"
-        style={{ color: active ? '#fff' : 'rgba(255,255,255,0.6)' }}
-      />
+      {/* Кольорова іконка */}
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+        style={{
+          background: active ? 'rgba(255,255,255,0.25)' : gradient,
+          boxShadow: active ? '0 0 20px rgba(255,255,255,0.3)' : 'none',
+        }}
+      >
+        <Icon
+          className="w-5 h-5 text-white"
+          style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))' }}
+        />
+      </div>
+
       <span
-        className="text-[11px] font-medium"
-        style={{ color: active ? '#fff' : 'rgba(255,255,255,0.6)' }}
+        className="text-[11px] font-semibold tracking-wide"
+        style={{
+          color: '#fff',
+          textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+        }}
       >
         {label}
       </span>
+
+      {/* Підсвітка в активному стані */}
+      {active && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.25), transparent 70%)',
+          }}
+        />
+      )}
     </motion.button>
   );
 }
@@ -196,9 +244,13 @@ function PhotoTab({
     try {
       const blob = await (await fetch(preview)).blob();
       const path = `${userId}/${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from('meals').upload(path, blob);
+      const { error: upErr } = await supabase.storage
+        .from('meals')
+        .upload(path, blob);
       if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from('meals').getPublicUrl(path);
+      const { data: urlData } = supabase.storage
+        .from('meals')
+        .getPublicUrl(path);
 
       const { error: dbErr } = await supabase.from('meals').insert({
         user_id: userId,
@@ -241,36 +293,55 @@ function PhotoTab({
       {!preview ? (
         <button
           onClick={() => inputRef.current?.click()}
-          className="w-full border-2 border-dashed border-white/15 rounded-xl p-4 text-center hover:border-purple-400/50 transition"
+          className="w-full border-2 border-dashed rounded-xl p-5 text-center transition"
+          style={{ borderColor: 'rgba(124,58,237,0.3)' }}
         >
-          <Camera className="w-6 h-6 mx-auto mb-1.5 text-white/40" />
-          <p className="text-sm text-white/70">Сфотографуй страву</p>
+          <Camera className="w-7 h-7 mx-auto mb-2 text-purple-300" />
+          <p className="text-sm text-white/80 font-medium">
+            Сфотографуй страву
+          </p>
+          <p className="text-[11px] text-white/40 mt-1">
+            ШІ розпізнає калорії та БЖВ
+          </p>
         </button>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="relative rounded-xl overflow-hidden">
-            <img src={preview} alt="" className="w-full max-h-48 object-cover" />
+            <img
+              src={preview}
+              alt=""
+              className="w-full max-h-48 object-cover"
+            />
             <button
               onClick={() => {
                 setPreview(null);
                 setResult(null);
               }}
-              className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5"
+              className="absolute top-2 right-2 bg-black/60 backdrop-blur rounded-full p-1.5"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5 text-white" />
             </button>
           </div>
 
           {loading && !result && (
             <div className="flex items-center justify-center gap-2 py-3">
               <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-              <span className="text-xs text-white/60">Аналізую...</span>
+              <span className="text-xs text-white/60">Аналізую страву...</span>
             </div>
           )}
 
           {result && (
-            <div className="bg-purple-500/10 border border-purple-400/30 rounded-xl p-3 space-y-2">
-              <p className="font-medium text-sm">{result.name}</p>
+            <div className="bg-purple-500/10 border border-purple-400/30 rounded-xl p-3 space-y-3">
+              <div>
+                <p className="font-semibold text-sm text-white">
+                  {result.name}
+                </p>
+                {result.portion && (
+                  <p className="text-[10px] text-white/50">
+                    {result.portion}
+                  </p>
+                )}
+              </div>
               <div className="grid grid-cols-4 gap-1.5 text-center">
                 {[
                   ['ккал', result.calories],
@@ -278,8 +349,11 @@ function PhotoTab({
                   ['Ж', `${result.fat}г`],
                   ['В', `${result.carbs}г`],
                 ].map(([l, v]) => (
-                  <div key={String(l)} className="bg-white/5 rounded-lg py-1.5">
-                    <p className="font-bold text-sm">{v}</p>
+                  <div
+                    key={String(l)}
+                    className="bg-white/5 rounded-lg py-1.5"
+                  >
+                    <p className="font-bold text-sm text-white">{v}</p>
                     <p className="text-[10px] text-white/50">{l}</p>
                   </div>
                 ))}
@@ -287,7 +361,7 @@ function PhotoTab({
               <button
                 onClick={save}
                 disabled={loading}
-                className="w-full btn-grad rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full btn-grad rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 text-white"
               >
                 {loading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -425,9 +499,24 @@ function AdditivesTab({
   }
 
   const verdictCfg = {
-    safe: { color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-400/30', icon: ShieldCheck, label: '✅ Безпечно' },
-    caution: { color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-400/30', icon: AlertTriangle, label: '⚡ Ризики' },
-    danger: { color: 'text-red-400', bg: 'bg-red-500/10 border-red-400/30', icon: ShieldAlert, label: '🚫 Небезпечно' },
+    safe: {
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10 border-emerald-400/30',
+      icon: ShieldCheck,
+      label: '✅ Безпечно',
+    },
+    caution: {
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-500/10 border-yellow-400/30',
+      icon: AlertTriangle,
+      label: '⚡ Ризики',
+    },
+    danger: {
+      color: 'text-red-400',
+      bg: 'bg-red-500/10 border-red-400/30',
+      icon: ShieldAlert,
+      label: '🚫 Небезпечно',
+    },
   } as any;
 
   return (
@@ -449,24 +538,33 @@ function AdditivesTab({
       {!image ? (
         <button
           onClick={() => inputRef.current?.click()}
-          className="w-full border-2 border-dashed rounded-xl p-4 text-center transition"
-          style={{ borderColor: 'rgba(16,185,129,0.25)' }}
+          className="w-full border-2 border-dashed rounded-xl p-5 text-center transition"
+          style={{ borderColor: 'rgba(16,185,129,0.3)' }}
         >
-          <FlaskConical className="w-6 h-6 mx-auto mb-1.5 text-emerald-400/60" />
-          <p className="text-sm text-white/70">Сфотографуй склад продукту</p>
+          <FlaskConical className="w-7 h-7 mx-auto mb-2 text-emerald-300" />
+          <p className="text-sm text-white/80 font-medium">
+            Сфотографуй склад продукту
+          </p>
+          <p className="text-[11px] text-white/40 mt-1">
+            ШІ перевірить E-добавки та безпечність
+          </p>
         </button>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="relative rounded-xl overflow-hidden">
-            <img src={image} alt="" className="w-full max-h-40 object-cover" />
+            <img
+              src={image}
+              alt=""
+              className="w-full max-h-40 object-cover"
+            />
             <button
               onClick={() => {
                 setImage(null);
                 setAnalysis(null);
               }}
-              className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5"
+              className="absolute top-2 right-2 bg-black/60 backdrop-blur rounded-full p-1.5"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5 text-white" />
             </button>
           </div>
 
@@ -478,19 +576,19 @@ function AdditivesTab({
           )}
 
           {analysis && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {(() => {
                 const cfg = verdictCfg[analysis.verdict];
                 const Icon = cfg.icon;
                 return (
                   <div className={`rounded-xl p-3 border ${cfg.bg}`}>
-                    <div className="flex items-center gap-1.5 mb-1">
+                    <div className="flex items-center gap-1.5 mb-1.5">
                       <Icon className={`w-4 h-4 ${cfg.color}`} />
                       <span className={`text-sm font-semibold ${cfg.color}`}>
                         {cfg.label}
                       </span>
                     </div>
-                    <p className="text-xs text-white/80 leading-relaxed">
+                    <p className="text-xs text-white/85 leading-relaxed">
                       {analysis.verdict_text}
                     </p>
                   </div>
@@ -502,13 +600,13 @@ function AdditivesTab({
                   {analysis.dangerous.map((a: any, i: number) => (
                     <div
                       key={i}
-                      className="bg-red-500/10 border border-red-400/30 rounded-lg p-2"
+                      className="bg-red-500/10 border border-red-400/30 rounded-lg p-2.5"
                     >
-                      <p className="text-xs font-semibold text-red-400 underline decoration-red-400/60 underline-offset-2">
+                      <p className="text-xs font-semibold text-red-400 underline decoration-red-400/60 decoration-2 underline-offset-2">
                         {a.code} — {a.name}
                       </p>
                       {a.effect && (
-                        <p className="text-[10px] text-white/60 mt-0.5">
+                        <p className="text-[10px] text-white/65 mt-1">
                           {a.effect}
                         </p>
                       )}
@@ -522,13 +620,13 @@ function AdditivesTab({
                   {analysis.caution.map((a: any, i: number) => (
                     <div
                       key={i}
-                      className="bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-2"
+                      className="bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-2.5"
                     >
-                      <p className="text-xs font-semibold text-yellow-400 underline decoration-yellow-400/60 underline-offset-2">
+                      <p className="text-xs font-semibold text-yellow-400 underline decoration-yellow-400/60 decoration-2 underline-offset-2">
                         {a.code} — {a.name}
                       </p>
                       {a.risk && (
-                        <p className="text-[10px] text-white/60 mt-0.5">
+                        <p className="text-[10px] text-white/65 mt-1">
                           {a.risk}
                         </p>
                       )}
@@ -594,7 +692,9 @@ function DrinkTab({
       });
       const data = await res.json();
       if (data.error)
-        throw new Error(data.error === 'unknown' ? 'Не розпізнав' : data.error);
+        throw new Error(
+          data.error === 'unknown' ? 'Не розпізнав напій' : data.error
+        );
       setResult(data);
     } catch (e: any) {
       setError(e.message);
@@ -655,7 +755,7 @@ function DrinkTab({
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder='Наприклад: "кола 0.5л"'
+          placeholder='Наприклад: "кола 0.5л", "кава з молоком"'
           className="flex-1 rounded-xl px-3 py-2.5 text-sm"
           onKeyDown={(e) => e.key === 'Enter' && analyze()}
           autoFocus
@@ -663,18 +763,27 @@ function DrinkTab({
         <button
           onClick={analyze}
           disabled={loading || !text.trim()}
-          className="px-4 rounded-xl text-sm font-medium disabled:opacity-50 text-white"
+          className="px-4 rounded-xl text-sm font-semibold disabled:opacity-50 text-white"
           style={{
             background: 'linear-gradient(135deg, #f59e0b, #fb923c)',
           }}
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'OK'}
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            'OK'
+          )}
         </button>
       </div>
 
       {result && (
-        <div className="mt-3 bg-amber-500/10 border border-amber-400/30 rounded-xl p-3 space-y-2">
-          <p className="font-medium text-sm">{result.name}</p>
+        <div className="mt-3 bg-amber-500/10 border border-amber-400/30 rounded-xl p-3 space-y-3">
+          <div>
+            <p className="font-semibold text-sm text-white">{result.name}</p>
+            {result.portion && (
+              <p className="text-[10px] text-white/50">{result.portion}</p>
+            )}
+          </div>
           <div className="grid grid-cols-4 gap-1.5 text-center">
             {[
               ['ккал', result.calories],
@@ -683,7 +792,7 @@ function DrinkTab({
               ['Цукор', `${result.sugar}г`],
             ].map(([l, v]) => (
               <div key={String(l)} className="bg-white/5 rounded-lg py-1.5">
-                <p className="font-bold text-sm">{v}</p>
+                <p className="font-bold text-sm text-white">{v}</p>
                 <p className="text-[10px] text-white/50">{l}</p>
               </div>
             ))}
@@ -691,7 +800,7 @@ function DrinkTab({
           <button
             onClick={save}
             disabled={loading}
-            className="w-full rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2 text-white"
+            className="w-full rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2 text-white disabled:opacity-50"
             style={{
               background: 'linear-gradient(135deg, #f59e0b, #fb923c)',
             }}
