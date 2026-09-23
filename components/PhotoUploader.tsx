@@ -68,16 +68,38 @@ export function PhotoUploader({
     }
   }
 
+  // 🏆 Додає +1 бал користувачу
+  async function addPoint() {
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('points')
+      .eq('id', userId)
+      .single();
+
+    if (currentProfile) {
+      await supabase
+        .from('profiles')
+        .update({ points: (currentProfile.points || 0) + 1 })
+        .eq('id', userId);
+    }
+  }
+
   async function save() {
     if (!result || !preview) return;
     setLoading(true);
     try {
+      // 1. Завантажуємо фото в Storage
       const blob = await (await fetch(preview)).blob();
       const path = `${userId}/${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from('meals').upload(path, blob);
+      const { error: upErr } = await supabase.storage
+        .from('meals')
+        .upload(path, blob);
       if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from('meals').getPublicUrl(path);
+      const { data: urlData } = supabase.storage
+        .from('meals')
+        .getPublicUrl(path);
 
+      // 2. Вставляємо страву в БД
       const { error: dbErr } = await supabase.from('meals').insert({
         user_id: userId,
         name: result.name,
@@ -90,6 +112,10 @@ export function PhotoUploader({
       });
       if (dbErr) throw dbErr;
 
+      // 3. Нараховуємо +1 бал
+      await addPoint();
+
+      // 4. Скидаємо форму
       setPreview(null);
       setResult(null);
       if (inputRef.current) inputRef.current.value = '';
@@ -127,8 +153,12 @@ export function PhotoUploader({
             className="w-full border-2 border-dashed border-white/15 rounded-2xl p-8 text-center hover:border-purple-400/50 transition-colors group"
           >
             <Camera className="w-10 h-10 mx-auto mb-3 text-white/40 group-hover:text-purple-400 transition-colors" />
-            <p className="text-white/70 text-sm">Сфотографуй або завантаж фото</p>
-            <p className="text-white/40 text-xs mt-1">ШІ розпізнає страву та калорії</p>
+            <p className="text-white/70 text-sm">
+              Сфотографуй або завантаж фото
+            </p>
+            <p className="text-white/40 text-xs mt-1">
+              ШІ розпізнає страву та калорії
+            </p>
           </motion.button>
         ) : (
           <motion.div
@@ -138,7 +168,11 @@ export function PhotoUploader({
             className="space-y-3"
           >
             <div className="relative rounded-2xl overflow-hidden">
-              <img src={preview} alt="" className="w-full max-h-64 object-cover" />
+              <img
+                src={preview}
+                alt=""
+                className="w-full max-h-64 object-cover"
+              />
               <button
                 onClick={() => {
                   setPreview(null);
@@ -197,7 +231,7 @@ export function PhotoUploader({
                   ) : (
                     <Check className="w-4 h-4" />
                   )}
-                  Додати в щоденник
+                  Додати в щоденник (+1 бал)
                 </button>
               </motion.div>
             )}

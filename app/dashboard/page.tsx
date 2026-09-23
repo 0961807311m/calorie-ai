@@ -15,9 +15,11 @@ import { DailyAdvice } from '@/components/DailyAdvice';
 import { NutritionReport } from '@/components/NutritionReport';
 import { DrinkUploader } from '@/components/DrinkUploader';
 import { WeightBadge } from '@/components/WeightEditor';
-import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { AdditivesScanner } from '@/components/AdditivesScanner';
+import { PointsCounter } from '@/components/PointsCounter';
+import { Preloader } from '@/components/Preloader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Loader2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -26,7 +28,9 @@ export default function Dashboard() {
   const router = useRouter();
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       router.push('/auth');
       return;
@@ -76,12 +80,31 @@ export default function Dashboard() {
     );
   }
 
+  // 🍎 ПРЕЛОДЕР — РАЗ НА ДЕНЬ
   if (loading || !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-      </div>
-    );
+    if (typeof window !== 'undefined') {
+      const today = new Date().toISOString().slice(0, 10);
+      const seenDate = localStorage.getItem('preloader-seen-date');
+
+      if (seenDate === today) {
+        // Вже бачили сьогодні — швидке яблучко
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-5xl"
+            >
+              🍎
+            </motion.div>
+          </div>
+        );
+      }
+
+      // Перший запуск сьогодні — повний прелодер
+      localStorage.setItem('preloader-seen-date', today);
+    }
+    return <Preloader />;
   }
 
   const eaten = meals.reduce((s, m) => s + m.calories, 0);
@@ -110,17 +133,32 @@ export default function Dashboard() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <div className="glass px-3 py-2 text-sm">{goalLabel}</div>
-          <BarcodeScanner userId={profile.id} onAdd={load} />
+          <PointsCounter userId={profile.id} />
+          <AdditivesScanner userId={profile.id} onAdd={load} />
         </div>
       </header>
 
       <section className="glass p-6 mb-5 glow fade-up flex flex-col items-center">
         <CalorieRing eaten={eaten} norm={profile.daily_norm} />
         <div className="w-full mt-6 space-y-3">
-          <MacroBar label="Білки" current={Math.round(protein)} target={target.protein} color="#60a5fa" />
-          <MacroBar label="Жири" current={Math.round(fat)} target={target.fat} color="#fbbf24" />
-          <MacroBar label="Вуглеводи" current={Math.round(carbs)} target={target.carbs} color="#34d399" />
+          <MacroBar
+            label="Білки"
+            current={Math.round(protein)}
+            target={target.protein}
+            color="#60a5fa"
+          />
+          <MacroBar
+            label="Жири"
+            current={Math.round(fat)}
+            target={target.fat}
+            color="#fbbf24"
+          />
+          <MacroBar
+            label="Вуглеводи"
+            current={Math.round(carbs)}
+            target={target.carbs}
+            color="#34d399"
+          />
           {sugar > 0 && (
             <MacroBar
               label="Цукор"
@@ -167,7 +205,7 @@ export default function Dashboard() {
                   />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center text-2xl">
-                    {m.is_drink ? '🥤' : '🍽️'}
+                    {m.is_drink ? '🥤' : m.label_analysis ? '🔬' : '🍽️'}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -182,10 +220,16 @@ export default function Dashboard() {
                     {m.sugar ? ` · Цукор ${Math.round(m.sugar)}г` : ''}
                   </p>
                 </div>
-                <WeightBadge
-                  item={m}
-                  onUpdate={(newCal) => updateMealCalories(m.id, newCal)}
-                />
+                {m.calories > 0 ? (
+                  <WeightBadge
+                    item={m}
+                    onUpdate={(newCal) => updateMealCalories(m.id, newCal)}
+                  />
+                ) : (
+                  <div className="text-right">
+                    <p className="text-xs opacity-50">{m.portion}</p>
+                  </div>
+                )}
                 <button
                   onClick={() => deleteMeal(m.id)}
                   className="p-2 opacity-30 hover:text-red-400 transition-colors"

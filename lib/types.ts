@@ -8,6 +8,7 @@ export type Profile = {
   goal: 'lose' | 'keep' | 'gain';
   daily_norm: number;
   theme?: 'dark' | 'light';
+  points?: number;
 };
 
 export type Meal = {
@@ -23,6 +24,9 @@ export type Meal = {
   sugar?: number;
   is_drink?: boolean;
   volume_ml?: number;
+  label_analysis?: string;
+  has_additives?: boolean;
+  additives_list?: string;
 };
 
 export type DailyReport = {
