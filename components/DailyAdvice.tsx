@@ -13,8 +13,11 @@ export function DailyAdvice({
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   async function analyze() {
+    setOpen(true);
+    if (advice) return; // вже є — не робимо новий запит
     setLoading(true);
     setError(null);
     try {
@@ -33,54 +36,107 @@ export function DailyAdvice({
     }
   }
 
+  async function refresh() {
+    setLoading(true);
+    setError(null);
+    setAdvice(null);
+    try {
+      const res = await fetch('/api/daily-advice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meals, profile }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAdvice(data.advice);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <section className="glass p-6 mb-5 fade-up">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-400" /> Порада ШІ на сьогодні
-        </h3>
+    <div className="glass p-3 mb-5 fade-up">
+      {/* Компактна панель */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(167,139,250,0.25), rgba(236,72,153,0.25))',
+            }}
+          >
+            <Sparkles className="w-4 h-4 text-purple-300" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium leading-tight">Аналіз дня</p>
+            <p className="text-[10px] text-white/40 leading-tight">
+              {meals.length > 0
+                ? `${meals.length} страв сьогодні`
+                : 'Почни додавати страви'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={open ? refresh : analyze}
+          disabled={loading}
+          className="btn-grad px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 flex-shrink-0"
+        >
+          {loading ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <Sparkles className="w-3 h-3" />
+          )}
+          {open ? 'Оновити' : 'Порада AI'}
+        </button>
       </div>
 
-      {!advice && !loading && (
-        <button
-          onClick={analyze}
-          className="btn-grad w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2"
-        >
-          <Sparkles className="w-4 h-4" /> Проаналізувати мій день
-        </button>
-      )}
-
-      {loading && (
-        <div className="flex items-center justify-center gap-3 py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
-          <span className="text-sm opacity-70">ШІ аналізує твій день...</span>
-        </div>
-      )}
-
+      {/* Розгорнутий аналіз */}
       <AnimatePresence>
-        {advice && (
+        {open && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-purple-500/10 border border-purple-400/30 rounded-2xl p-4 space-y-3"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="overflow-hidden"
           >
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{advice}</p>
-            <button
-              onClick={analyze}
-              disabled={loading}
-              className="w-full py-2 rounded-xl text-sm opacity-70 hover:opacity-100 flex items-center justify-center gap-2 transition"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Оновити аналіз
-            </button>
+            {loading && !advice && (
+              <div className="flex items-center justify-center gap-2 py-3">
+                <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                <span className="text-xs text-white/60">
+                  Аналізую твій день...
+                </span>
+              </div>
+            )}
+
+            {advice && (
+              <div className="bg-purple-500/10 border border-purple-400/30 rounded-2xl p-3">
+                <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-white/90">
+                  {advice}
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 text-xs text-red-300">
+                {error}
+              </div>
+            )}
+
+            {advice && (
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full mt-2 py-1.5 text-xs text-white/40 hover:text-white/70 transition"
+              >
+                Згорнути
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-3 text-sm text-red-300 mt-3">
-          {error}
-        </div>
-      )}
-    </section>
+    </div>
   );
 }
