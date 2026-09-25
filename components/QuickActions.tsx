@@ -13,6 +13,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { tapLight, notifySuccess, notifyError } from '@/lib/haptics';
 
 type TabType = 'photo' | 'additives' | 'drink' | null;
 
@@ -105,7 +106,10 @@ function ActionButton({
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
-      onClick={onClick}
+      onClick={() => {
+        tapLight();
+        onClick();
+      }}
       className="relative rounded-2xl p-3 flex flex-col items-center gap-1.5 transition-all overflow-hidden"
       style={{
         background: active ? gradient : 'rgba(255,255,255,0.06)',
@@ -217,8 +221,10 @@ function PhotoTab({
           json.error === 'not_food' ? 'Це не схоже на їжу 🤔' : json.error
         );
       setResult(json);
+      await notifySuccess();
     } catch (err: any) {
       setError(err.message);
+      await notifyError();
     } finally {
       setLoading(false);
     }
@@ -265,10 +271,12 @@ function PhotoTab({
       if (dbErr) throw dbErr;
 
       await addPoint();
+      await notifySuccess();
       onAdd();
       onClose();
     } catch (e: any) {
       setError(e.message);
+      await notifyError();
     } finally {
       setLoading(false);
     }
@@ -443,8 +451,10 @@ function AdditivesTab({
         throw new Error('Не видно склад. Спробуй ближче.');
       if (data.error) throw new Error(data.error);
       setAnalysis(data);
+      await notifySuccess();
     } catch (e: any) {
       setError(e.message);
+      await notifyError();
     } finally {
       setLoading(false);
     }
@@ -489,10 +499,12 @@ function AdditivesTab({
         ]),
       });
       await addPoint();
+      await notifySuccess();
       onAdd();
       onClose();
     } catch (e: any) {
       setError(e.message);
+      await notifyError();
     } finally {
       setLoading(false);
     }
@@ -696,8 +708,10 @@ function DrinkTab({
           data.error === 'unknown' ? 'Не розпізнав напій' : data.error
         );
       setResult(data);
+      await notifySuccess();
     } catch (e: any) {
       setError(e.message);
+      await notifyError();
     } finally {
       setLoading(false);
     }
@@ -734,10 +748,12 @@ function DrinkTab({
         volume_ml: result.volume_ml,
       });
       await addPoint();
+      await notifySuccess();
       onAdd();
       onClose();
     } catch (e: any) {
       setError(e.message);
+      await notifyError();
     } finally {
       setLoading(false);
     }

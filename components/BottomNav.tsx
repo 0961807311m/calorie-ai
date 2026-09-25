@@ -4,12 +4,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Home, History, Settings, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { tapLight } from '@/lib/haptics';
 
 export function BottomNav() {
   const path = usePathname();
   const router = useRouter();
 
   async function logout() {
+    tapLight();
     await supabase.auth.signOut();
     router.push('/auth');
     router.refresh();
@@ -25,8 +27,11 @@ export function BottomNav() {
     <motion.nav
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 glass px-2 py-2 flex gap-1 shadow-2xl"
-      style={{ borderRadius: 999 }}
+      className="fixed left-1/2 -translate-x-1/2 z-50 glass px-2 py-2 flex gap-1 shadow-2xl"
+      style={{
+        bottom: 'calc(1rem + env(safe-area-inset-bottom))',
+        borderRadius: 999,
+      }}
     >
       {items.map(({ href, icon: Icon, label }) => {
         const active = path === href;
@@ -34,6 +39,7 @@ export function BottomNav() {
           <Link
             key={href}
             href={href}
+            onClick={() => tapLight()}
             className={`relative px-3 py-2.5 rounded-full flex items-center gap-1.5 ${
               active ? 'btn-grad' : ''
             }`}
