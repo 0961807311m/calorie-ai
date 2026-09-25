@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { tapLight, notifySuccess, notifyError } from '@/lib/haptics';
+import { useToast } from '@/lib/useToast';
 
 type TabType = 'photo' | 'additives' | 'drink' | null;
 
@@ -28,7 +29,6 @@ export function QuickActions({
 
   return (
     <>
-      {/* 3 компактні кнопки */}
       <div className="grid grid-cols-3 gap-2.5 mb-5 fade-up">
         <ActionButton
           icon={Camera}
@@ -56,7 +56,6 @@ export function QuickActions({
         />
       </div>
 
-      {/* Розгорнутий контент */}
       <AnimatePresence mode="wait">
         {tab === 'photo' && (
           <PhotoTab
@@ -87,7 +86,6 @@ export function QuickActions({
   );
 }
 
-// === Кнопка ===
 function ActionButton({
   icon: Icon,
   label,
@@ -121,7 +119,6 @@ function ActionButton({
           : `0 0 15px ${color}`,
       }}
     >
-      {/* Кольорова іконка */}
       <div
         className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
         style={{
@@ -145,7 +142,6 @@ function ActionButton({
         {label}
       </span>
 
-      {/* Підсвітка в активному стані */}
       {active && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -161,7 +157,7 @@ function ActionButton({
   );
 }
 
-// === Фото-таб ===
+// === Фото ===
 function PhotoTab({
   userId,
   onAdd,
@@ -174,8 +170,8 @@ function PhotoTab({
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   async function compress(file: File, maxSize = 1024): Promise<string> {
     return new Promise((resolve) => {
@@ -204,11 +200,12 @@ function PhotoTab({
   }
 
   async function handleFile(file: File) {
-    setError(null);
     setResult(null);
     const compressed = await compress(file);
     setPreview(compressed);
     setLoading(true);
+    const toastId = toast.loading('Аналізую страву...');
+
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -216,14 +213,18 @@ function PhotoTab({
         body: JSON.stringify({ image: compressed }),
       });
       const json = await res.json();
-      if (json.error)
+      if (json.error) {
         throw new Error(
           json.error === 'not_food' ? 'Це не схоже на їжу 🤔' : json.error
         );
+      }
       setResult(json);
+      toast.hide(toastId);
+      toast.success('Розпізнано! 🎉');
       await notifySuccess();
     } catch (err: any) {
-      setError(err.message);
+      toast.hide(toastId);
+      toast.error(err.message);
       await notifyError();
     } finally {
       setLoading(false);
@@ -271,11 +272,12 @@ function PhotoTab({
       if (dbErr) throw dbErr;
 
       await addPoint();
+      toast.success(`"${result.name}" додано! +1 бал`);
       await notifySuccess();
       onAdd();
       onClose();
     } catch (e: any) {
-      setError(e.message);
+      toast.error(e.message);
       await notifyError();
     } finally {
       setLoading(false);
@@ -380,19 +382,13 @@ function PhotoTab({
               </button>
             </div>
           )}
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-2.5 text-xs text-red-300">
-              {error}
-            </div>
-          )}
         </div>
       )}
     </motion.div>
   );
 }
 
-// === E-добавки таб ===
+// === E-добавки ===
 function AdditivesTab({
   userId,
   onAdd,
@@ -405,8 +401,8 @@ function AdditivesTab({
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [image, setImage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   async function compress(file: File, maxSize = 1280): Promise<string> {
     return new Promise((resolve) => {
@@ -435,11 +431,12 @@ function AdditivesTab({
   }
 
   async function handleFile(file: File) {
-    setError(null);
     setAnalysis(null);
     const compressed = await compress(file);
     setImage(compressed);
     setLoading(true);
+    const toastId = toast.loading('Аналізую склад...');
+
     try {
       const res = await fetch('/api/additives', {
         method: 'POST',
@@ -447,13 +444,23 @@ function AdditivesTab({
         body: JSON.stringify({ image: compressed }),
       });
       const data = await res.json();
-      if (data.error === 'not_label')
+      if (data.error === 'not_label') {
         throw new Error('Не видно склад. Спробуй ближче.');
+      }
       if (data.error) throw new Error(data.error);
       setAnalysis(data);
+      toast.hide(toastId);
+      if (data.verdict === 'danger') {
+        toast.error('Знайдено небезпечні добавки!');
+      } else if (data.verdict === 'caution') {
+        toast.info('Є ризики — перевір деталі');
+      } else {
+        toast.success('Продукт безпечний ✅');
+      }
       await notifySuccess();
     } catch (e: any) {
-      setError(e.message);
+      toast.hide(toastId);
+      toast.error(e.message);
       await notifyError();
     } finally {
       setLoading(false);
@@ -499,11 +506,12 @@ function AdditivesTab({
         ]),
       });
       await addPoint();
+      toast.success('Збережено! +1 бал');
       await notifySuccess();
       onAdd();
       onClose();
     } catch (e: any) {
-      setError(e.message);
+      toast.error(e.message);
       await notifyError();
     } finally {
       setLoading(false);
@@ -664,19 +672,13 @@ function AdditivesTab({
               </button>
             </div>
           )}
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-2.5 text-xs text-red-300">
-              {error}
-            </div>
-          )}
         </div>
       )}
     </motion.div>
   );
 }
 
-// === Напій таб ===
+// === Напій ===
 function DrinkTab({
   userId,
   onAdd,
@@ -689,13 +691,14 @@ function DrinkTab({
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   async function analyze() {
     if (!text.trim()) return;
     setLoading(true);
-    setError(null);
     setResult(null);
+    const toastId = toast.loading('Аналізую напій...');
+
     try {
       const res = await fetch('/api/drink', {
         method: 'POST',
@@ -703,14 +706,18 @@ function DrinkTab({
         body: JSON.stringify({ text: text.trim() }),
       });
       const data = await res.json();
-      if (data.error)
+      if (data.error) {
         throw new Error(
           data.error === 'unknown' ? 'Не розпізнав напій' : data.error
         );
+      }
       setResult(data);
+      toast.hide(toastId);
+      toast.success('Розпізнано! 🥤');
       await notifySuccess();
     } catch (e: any) {
-      setError(e.message);
+      toast.hide(toastId);
+      toast.error(e.message);
       await notifyError();
     } finally {
       setLoading(false);
@@ -748,11 +755,12 @@ function DrinkTab({
         volume_ml: result.volume_ml,
       });
       await addPoint();
+      toast.success(`"${result.name}" додано! +1 бал`);
       await notifySuccess();
       onAdd();
       onClose();
     } catch (e: any) {
-      setError(e.message);
+      toast.error(e.message);
       await notifyError();
     } finally {
       setLoading(false);
@@ -784,11 +792,7 @@ function DrinkTab({
             background: 'linear-gradient(135deg, #f59e0b, #fb923c)',
           }}
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            'OK'
-          )}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'OK'}
         </button>
       </div>
 
@@ -828,12 +832,6 @@ function DrinkTab({
             )}
             Додати (+1 бал)
           </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-2 bg-red-500/10 border border-red-400/30 rounded-xl p-2.5 text-xs text-red-300">
-          {error}
         </div>
       )}
     </motion.div>

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { BottomNav } from '@/components/BottomNav';
 import { PageTransition } from '@/components/PageTransition';
+import { useToast } from '@/lib/useToast';
 import { Loader2, TrendingUp } from 'lucide-react';
 import {
   LineChart,
@@ -15,6 +16,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from 'recharts';
 
 type DayData = {
@@ -32,6 +37,7 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [norm, setNorm] = useState<number>(0);
   const router = useRouter();
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,6 +115,16 @@ export default function History() {
   const avgCal = Math.round(totalCal / days.length);
   const daysWithMeals = days.filter((d) => d.calories > 0).length;
 
+  const totalProtein = Math.round(days.reduce((s, d) => s + d.protein, 0));
+  const totalFat = Math.round(days.reduce((s, d) => s + d.fat, 0));
+  const totalCarbs = Math.round(days.reduce((s, d) => s + d.carbs, 0));
+
+  const macroData = [
+    { name: 'Білки', value: totalProtein },
+    { name: 'Жири', value: totalFat },
+    { name: 'Вуглеводи', value: totalCarbs },
+  ];
+
   return (
     <PageTransition>
       <main
@@ -152,6 +168,7 @@ export default function History() {
           </div>
         </div>
 
+        {/* Калорії по днях */}
         <section className="glass p-6 mb-5 fade-up">
           <h3 className="font-semibold mb-4">🔥 Калорії по днях</h3>
           <div style={{ width: '100%', height: 220 }}>
@@ -186,6 +203,16 @@ export default function History() {
                   }}
                   formatter={(v: any) => [`${v} ккал`, 'Калорії']}
                 />
+                {norm > 0 && (
+                  <Line
+                    type="monotone"
+                    dataKey={() => norm}
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name="Норма"
+                  />
+                )}
                 <Line
                   type="monotone"
                   dataKey="calories"
@@ -199,7 +226,8 @@ export default function History() {
           </div>
         </section>
 
-        <section className="glass p-6 fade-up">
+        {/* Макронутрієнти по днях */}
+        <section className="glass p-6 mb-5 fade-up">
           <h3 className="font-semibold mb-4">🥩 Макронутрієнти</h3>
           <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
@@ -246,6 +274,44 @@ export default function History() {
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+
+        {/* Розподіл макросів за період — PieChart */}
+        <section className="glass p-6 mb-5 fade-up">
+          <h3 className="font-semibold mb-4">🥧 Розподіл макросів</h3>
+          <div style={{ width: '100%', height: 260 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={macroData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={90}
+                  paddingAngle={4}
+                >
+                  <Cell fill="#60a5fa" />
+                  <Cell fill="#fbbf24" />
+                  <Cell fill="#34d399" />
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: 'rgba(20,20,30,0.95)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 12,
+                    color: 'white',
+                  }}
+                  formatter={(v: any) => [`${v} г`, '']}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 12, color: 'white' }}
+                  iconType="circle"
+                />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </section>

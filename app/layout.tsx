@@ -3,6 +3,7 @@ import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { UpdateBanner } from '@/components/UpdateBanner';
+import { ToastProvider } from '@/lib/useToast';
 
 export const metadata: Metadata = {
   title: 'CalorieAI — Розумний щоденник калорій',
@@ -28,13 +29,19 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="uk">
       <body>
         <ThemeProvider>
-          <UpdateBanner />
-          {children}
+          <ToastProvider>
+            <UpdateBanner />
+            {children}
+          </ToastProvider>
         </ThemeProvider>
         <PWARegister />
       </body>
