@@ -15,27 +15,14 @@ import { NutritionReport } from '@/components/NutritionReport';
 import { WeightBadge } from '@/components/WeightEditor';
 import { QuickActions } from '@/components/QuickActions';
 import { PointsCounter } from '@/components/PointsCounter';
-import { Preloader } from '@/components/Preloader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showFullPreloader, setShowFullPreloader] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-    const today = new Date().toISOString().slice(0, 10);
-    const seenDate = localStorage.getItem('preloader-seen-date');
-    if (seenDate !== today) {
-      setShowFullPreloader(true);
-      localStorage.setItem('preloader-seen-date', today);
-    }
-  }, []);
 
   const load = useCallback(async () => {
     const {
@@ -89,28 +76,11 @@ export default function Dashboard() {
     );
   }
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-5xl animate-pulse">🍎</div>
-      </div>
-    );
-  }
-
-  if (showFullPreloader) {
-    return <Preloader />;
-  }
-
+  // ⏳ Простий спінер поки завантажуються дані
   if (loading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="text-5xl"
-        >
-          🍎
-        </motion.div>
+        <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
       </div>
     );
   }
