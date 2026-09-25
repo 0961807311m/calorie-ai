@@ -15,6 +15,7 @@ import { NutritionReport } from '@/components/NutritionReport';
 import { WeightBadge } from '@/components/WeightEditor';
 import { QuickActions } from '@/components/QuickActions';
 import { PointsCounter } from '@/components/PointsCounter';
+import { FeatureMenu } from '@/components/FeatureMenu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Loader2 } from 'lucide-react';
 
@@ -25,9 +26,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/auth');
       return;
@@ -76,7 +75,6 @@ export default function Dashboard() {
     );
   }
 
-  // ⏳ Простий спінер поки завантажуються дані
   if (loading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -100,7 +98,7 @@ export default function Dashboard() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 pb-32">
-      <header className="flex items-center justify-between mb-5 fade-up gap-3">
+      <header className="flex items-center justify-between mb-5 fade-up gap-2">
         <div className="min-w-0">
           <p className="text-xs opacity-50">Сьогодні</p>
           <h1 className="text-xl font-bold truncate">
@@ -111,37 +109,20 @@ export default function Dashboard() {
           </h1>
           <p className="text-xs gradient-text font-medium mt-0.5">{goalLabel}</p>
         </div>
-        <PointsCounter userId={profile.id} />
+        <div className="flex items-center gap-2">
+          <PointsCounter userId={profile.id} />
+          <FeatureMenu userId={profile.id} />
+        </div>
       </header>
 
       <section className="glass p-5 mb-4 glow fade-up flex flex-col items-center">
         <CalorieRing eaten={eaten} norm={profile.daily_norm} size={190} />
         <div className="w-full mt-5 space-y-2.5">
-          <MacroBar
-            label="Білки"
-            current={Math.round(protein)}
-            target={target.protein}
-            color="#60a5fa"
-          />
-          <MacroBar
-            label="Жири"
-            current={Math.round(fat)}
-            target={target.fat}
-            color="#fbbf24"
-          />
-          <MacroBar
-            label="Вуглеводи"
-            current={Math.round(carbs)}
-            target={target.carbs}
-            color="#34d399"
-          />
+          <MacroBar label="Білки" current={Math.round(protein)} target={target.protein} color="#60a5fa" />
+          <MacroBar label="Жири" current={Math.round(fat)} target={target.fat} color="#fbbf24" />
+          <MacroBar label="Вуглеводи" current={Math.round(carbs)} target={target.carbs} color="#34d399" />
           {sugar > 0 && (
-            <MacroBar
-              label="Цукор"
-              current={Math.round(sugar)}
-              target={50}
-              color="#f87171"
-            />
+            <MacroBar label="Цукор" current={Math.round(sugar)} target={50} color="#f87171" />
           )}
         </div>
       </section>
@@ -172,11 +153,7 @@ export default function Dashboard() {
                 className="flex items-center gap-2.5 py-2.5 border-b border-white/5 last:border-0"
               >
                 {m.image_url ? (
-                  <img
-                    src={m.image_url}
-                    alt=""
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
+                  <img src={m.image_url} alt="" className="w-12 h-12 rounded-lg object-cover" />
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-xl">
                     {m.is_drink ? '🥤' : m.label_analysis ? '🔬' : '🍽️'}
@@ -195,10 +172,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 {m.calories > 0 ? (
-                  <WeightBadge
-                    item={m}
-                    onUpdate={(newCal) => updateMealCalories(m.id, newCal)}
-                  />
+                  <WeightBadge item={m} onUpdate={(newCal) => updateMealCalories(m.id, newCal)} />
                 ) : (
                   <p className="text-[10px] opacity-50 text-right max-w-[80px]">
                     {m.portion}
