@@ -16,6 +16,7 @@ import { WeightBadge } from '@/components/WeightEditor';
 import { QuickActions } from '@/components/QuickActions';
 import { PointsCounter } from '@/components/PointsCounter';
 import { FeatureMenu } from '@/components/FeatureMenu';
+import { PageTransition } from '@/components/PageTransition';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Loader2 } from 'lucide-react';
 
@@ -97,101 +98,137 @@ export default function Dashboard() {
   }[profile.goal];
 
   return (
-    <main className="max-w-2xl mx-auto p-4 pb-32">
-      <header className="flex items-center justify-between mb-5 fade-up gap-2">
-        <div className="min-w-0">
-          <p className="text-xs opacity-50">Сьогодні</p>
-          <h1 className="text-xl font-bold truncate">
-            {new Date().toLocaleDateString('uk-UA', {
-              day: 'numeric',
-              month: 'long',
-            })}
-          </h1>
-          <p className="text-xs gradient-text font-medium mt-0.5">{goalLabel}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PointsCounter userId={profile.id} />
-          <FeatureMenu userId={profile.id} />
-        </div>
-      </header>
+    <PageTransition>
+      <main
+        className="max-w-2xl mx-auto p-4"
+        style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
+      >
+        <header className="flex items-center justify-between mb-5 fade-up gap-2">
+          <div className="min-w-0">
+            <p className="text-xs opacity-50">Сьогодні</p>
+            <h1 className="text-xl font-bold truncate">
+              {new Date().toLocaleDateString('uk-UA', {
+                day: 'numeric',
+                month: 'long',
+              })}
+            </h1>
+            <p className="text-xs gradient-text font-medium mt-0.5">
+              {goalLabel}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <PointsCounter userId={profile.id} />
+            <FeatureMenu userId={profile.id} />
+          </div>
+        </header>
 
-      <section className="glass p-5 mb-4 glow fade-up flex flex-col items-center">
-        <CalorieRing eaten={eaten} norm={profile.daily_norm} size={190} />
-        <div className="w-full mt-5 space-y-2.5">
-          <MacroBar label="Білки" current={Math.round(protein)} target={target.protein} color="#60a5fa" />
-          <MacroBar label="Жири" current={Math.round(fat)} target={target.fat} color="#fbbf24" />
-          <MacroBar label="Вуглеводи" current={Math.round(carbs)} target={target.carbs} color="#34d399" />
-          {sugar > 0 && (
-            <MacroBar label="Цукор" current={Math.round(sugar)} target={50} color="#f87171" />
-          )}
-        </div>
-      </section>
+        <section className="glass p-5 mb-4 glow fade-up flex flex-col items-center">
+          <CalorieRing eaten={eaten} norm={profile.daily_norm} size={190} />
+          <div className="w-full mt-5 space-y-2.5">
+            <MacroBar
+              label="Білки"
+              current={Math.round(protein)}
+              target={target.protein}
+              color="#60a5fa"
+            />
+            <MacroBar
+              label="Жири"
+              current={Math.round(fat)}
+              target={target.fat}
+              color="#fbbf24"
+            />
+            <MacroBar
+              label="Вуглеводи"
+              current={Math.round(carbs)}
+              target={target.carbs}
+              color="#34d399"
+            />
+            {sugar > 0 && (
+              <MacroBar
+                label="Цукор"
+                current={Math.round(sugar)}
+                target={50}
+                color="#f87171"
+              />
+            )}
+          </div>
+        </section>
 
-      <DailyAdvice meals={meals} profile={profile} />
+        <DailyAdvice meals={meals} profile={profile} />
 
-      <QuickActions userId={profile.id} onAdd={load} />
+        <QuickActions userId={profile.id} onAdd={load} />
 
-      <StreakCard userId={profile.id} />
+        <StreakCard userId={profile.id} />
 
-      <NutritionReport userId={profile.id} profile={profile} />
+        <NutritionReport userId={profile.id} profile={profile} />
 
-      <section className="glass p-5 mt-5 fade-up">
-        <h3 className="font-semibold mb-3 text-sm">🍽️ Страви ({meals.length})</h3>
-        {meals.length === 0 ? (
-          <p className="text-sm opacity-40 text-center py-6">
-            Ще немає записів. Додай першу страву!
-          </p>
-        ) : (
-          <AnimatePresence>
-            {meals.map((m) => (
-              <motion.div
-                key={m.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                className="flex items-center gap-2.5 py-2.5 border-b border-white/5 last:border-0"
-              >
-                {m.image_url ? (
-                  <img src={m.image_url} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-xl">
-                    {m.is_drink ? '🥤' : m.label_analysis ? '🔬' : '🍽️'}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{m.name}</p>
-                  <p className="text-[11px] opacity-40">
-                    {new Date(m.eaten_at).toLocaleTimeString('uk-UA', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                    {' · '}Б{Math.round(m.protein)} Ж{Math.round(m.fat)} В
-                    {Math.round(m.carbs)}
-                    {m.sugar ? ` · Ц${Math.round(m.sugar)}` : ''}
-                  </p>
-                </div>
-                {m.calories > 0 ? (
-                  <WeightBadge item={m} onUpdate={(newCal) => updateMealCalories(m.id, newCal)} />
-                ) : (
-                  <p className="text-[10px] opacity-50 text-right max-w-[80px]">
-                    {m.portion}
-                  </p>
-                )}
-                <button
-                  onClick={() => deleteMeal(m.id)}
-                  className="p-1.5 opacity-30 hover:text-red-400 transition-colors"
+        <section className="glass p-5 mt-5 fade-up">
+          <h3 className="font-semibold mb-3 text-sm">
+            🍽️ Страви ({meals.length})
+          </h3>
+          {meals.length === 0 ? (
+            <p className="text-sm opacity-40 text-center py-6">
+              Ще немає записів. Додай першу страву!
+            </p>
+          ) : (
+            <AnimatePresence>
+              {meals.map((m) => (
+                <motion.div
+                  key={m.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  className="flex items-center gap-2.5 py-2.5 border-b border-white/5 last:border-0"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        )}
-      </section>
+                  {m.image_url ? (
+                    <img
+                      src={m.image_url}
+                      alt=""
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-xl">
+                      {m.is_drink ? '🥤' : m.label_analysis ? '🔬' : '🍽️'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{m.name}</p>
+                    <p className="text-[11px] opacity-40">
+                      {new Date(m.eaten_at).toLocaleTimeString('uk-UA', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                      {' · '}Б{Math.round(m.protein)} Ж{Math.round(m.fat)} В
+                      {Math.round(m.carbs)}
+                      {m.sugar ? ` · Ц${Math.round(m.sugar)}` : ''}
+                    </p>
+                  </div>
+                  {m.calories > 0 ? (
+                    <WeightBadge
+                      item={m}
+                      onUpdate={(newCal) => updateMealCalories(m.id, newCal)}
+                    />
+                  ) : (
+                    <p className="text-[10px] opacity-50 text-right max-w-[80px]">
+                      {m.portion}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => deleteMeal(m.id)}
+                    className="p-1.5 opacity-30 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
+        </section>
 
-      <ChatCoach profile={profile} />
-      <BottomNav />
-    </main>
+        <ChatCoach profile={profile} />
+        <BottomNav />
+      </main>
+    </PageTransition>
   );
 }

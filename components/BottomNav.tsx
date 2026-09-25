@@ -25,8 +25,14 @@ export function BottomNav() {
 
   return (
     <motion.nav
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 25,
+        delay: 0.2,
+      }}
       className="fixed left-1/2 -translate-x-1/2 z-50 glass px-2 py-2 flex gap-1 shadow-2xl"
       style={{
         bottom: 'calc(1rem + env(safe-area-inset-bottom))',
@@ -40,13 +46,17 @@ export function BottomNav() {
             key={href}
             href={href}
             onClick={() => tapLight()}
-            className={`relative px-3 py-2.5 rounded-full flex items-center gap-1.5 ${
+            className={`relative px-3 py-2.5 rounded-full flex items-center gap-1.5 transition-colors ${
               active ? 'btn-grad' : ''
             }`}
           >
-            <Icon className={`w-5 h-5 ${active ? 'text-white' : 'opacity-50'}`} />
+            <Icon
+              className={`w-5 h-5 transition-transform ${
+                active ? 'text-white scale-110' : 'opacity-50'
+              }`}
+            />
             <span
-              className={`text-xs ${
+              className={`text-xs transition-all ${
                 active ? 'text-white font-medium' : 'opacity-50'
               }`}
             >
