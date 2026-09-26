@@ -49,6 +49,7 @@ export function BottomNav() {
             className={`relative px-3 py-2.5 rounded-full flex items-center gap-1.5 transition-colors ${
               active ? 'btn-grad' : ''
             }`}
+            prefetch={false}
           >
             <Icon
               className={`w-5 h-5 transition-transform ${
