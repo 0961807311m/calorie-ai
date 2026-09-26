@@ -10,8 +10,12 @@ export function BottomNav() {
   const path = usePathname();
   const router = useRouter();
 
+  function handleNavClick() {
+    tapLight().catch(() => {});
+  }
+
   async function logout() {
-    tapLight();
+    tapLight().catch(() => {});
     await supabase.auth.signOut();
     router.push('/auth');
     router.refresh();
@@ -45,12 +49,12 @@ export function BottomNav() {
           <Link
             key={href}
             href={href}
-            prefetch={true}
             scroll={false}
-            onClick={() => tapLight()}
+            onClick={handleNavClick}
             className={`relative px-3 py-2.5 rounded-full flex items-center gap-1.5 transition-colors ${
               active ? 'btn-grad' : ''
             }`}
+            style={{ touchAction: 'manipulation' }}   // ← швидший тап
           >
             <Icon
               className={`w-5 h-5 transition-transform ${

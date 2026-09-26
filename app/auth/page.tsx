@@ -49,9 +49,79 @@ export default function AuthPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Фонові анімовані плями */}
-      <motion.div
-        className="absolute rounded-full pointer-events-none"
+      {/* CSS-анімації — працюють у GPU, 60 FPS без JS */}
+      <style>{`
+        @keyframes floatBlob1 {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(80px, 40px, 0) scale(1.15); }
+        }
+        @keyframes floatBlob2 {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(-60px, -30px, 0) scale(1.2); }
+        }
+        @keyframes floatParticle {
+          0% {
+            transform: translate3d(0, 0, 0);
+            opacity: 0;
+          }
+          20% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translate3d(var(--dx), -220px, 0);
+            opacity: 0;
+          }
+        }
+        @keyframes logoPulse {
+          0%, 100% {
+            transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+          }
+          50% {
+            transform: translate3d(0, 0, 0) scale(1.08) rotate(5deg);
+          }
+        }
+        @keyframes logoGlow {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.15); }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+        .blob-1 {
+          animation: floatBlob1 15s ease-in-out infinite;
+          will-change: transform;
+          transform: translate3d(0,0,0);
+        }
+        .blob-2 {
+          animation: floatBlob2 18s ease-in-out infinite;
+          will-change: transform;
+          transform: translate3d(0,0,0);
+        }
+        .particle {
+          animation: floatParticle var(--dur) linear infinite;
+          will-change: transform, opacity;
+          transform: translate3d(0,0,0);
+        }
+        .logo-anim {
+          animation: logoPulse 4s ease-in-out infinite;
+          will-change: transform;
+          transform: translate3d(0,0,0);
+        }
+        .logo-glow {
+          animation: logoGlow 3s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+        .shimmer-btn {
+          animation: shimmer 2.5s ease-in-out infinite;
+          animation-delay: 2s;
+          will-change: transform;
+        }
+      `}</style>
+
+      {/* Плями */}
+      <div
+        className="blob-1 absolute rounded-full pointer-events-none"
         style={{
           width: 500,
           height: 500,
@@ -61,15 +131,9 @@ export default function AuthPage() {
           top: '10%',
           left: '-20%',
         }}
-        animate={{
-          x: [0, 100, 0],
-          y: [0, 50, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <motion.div
-        className="absolute rounded-full pointer-events-none"
+      <div
+        className="blob-2 absolute rounded-full pointer-events-none"
         style={{
           width: 400,
           height: 400,
@@ -79,38 +143,29 @@ export default function AuthPage() {
           bottom: '5%',
           right: '-15%',
         }}
-        animate={{
-          x: [0, -80, 0],
-          y: [0, -40, 0],
-          scale: [1, 1.3, 1],
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Плаваючі частинки */}
-      {mounted && [...Array(15)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full pointer-events-none"
-          style={{
-            background: i % 3 === 0 ? '#a78bfa' : i % 3 === 1 ? '#ec4899' : '#fb923c',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            boxShadow: `0 0 8px ${i % 3 === 0 ? '#a78bfa' : i % 3 === 1 ? '#ec4899' : '#fb923c'}`,
-          }}
-          animate={{
-            y: [0, -100 - Math.random() * 100, 0],
-            x: [0, Math.random() * 50 - 25, 0],
-            opacity: [0, 0.8, 0],
-          }}
-          transition={{
-            duration: 8 + Math.random() * 6,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
+      {/* Частинки — 8, CSS-анімація */}
+      {mounted && [...Array(8)].map((_, i) => {
+        const colors = ['#a78bfa', '#ec4899', '#fb923c'];
+        const color = colors[i % 3];
+        const startLeft = (i * 12.5) % 100;
+        return (
+          <div
+            key={i}
+            className="particle absolute w-1 h-1 rounded-full pointer-events-none"
+            style={{
+              background: color,
+              left: `${startLeft}%`,
+              top: '100%',
+              boxShadow: `0 0 8px ${color}`,
+              ['--dx' as any]: `${(i % 3) * 30 - 30}px`,
+              ['--dur' as any]: `${12 + (i % 4) * 2}s`,
+              animationDelay: `${i * 1.3}s`,
+            }}
+          />
+        );
+      })}
 
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -118,48 +173,20 @@ export default function AuthPage() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md relative z-10"
       >
-        {/* Логотип з glow */}
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{
-            type: 'spring',
-            stiffness: 200,
-            damping: 15,
-            delay: 0.2,
-          }}
-          className="flex justify-center mb-6"
-        >
+        {/* Логотип */}
+        <div className="flex justify-center mb-6">
           <div className="relative">
-            <motion.div
-              animate={{
-                scale: [1, 1.15, 1],
-                opacity: [0.4, 0.7, 0.4],
-              }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute inset-0 rounded-full"
+            <div
+              className="logo-glow absolute inset-0 rounded-full"
               style={{
                 background:
                   'radial-gradient(circle, rgba(167,139,250,0.6) 0%, transparent 70%)',
                 filter: 'blur(30px)',
               }}
             />
-            <motion.div
-              animate={{
-                scale: [1, 1.08, 1],
-                rotate: [0, 5, -5, 0],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              className="text-7xl relative"
-            >
-              🍎
-            </motion.div>
+            <div className="logo-anim text-7xl relative">🍎</div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Заголовок */}
         <motion.div
@@ -195,7 +222,7 @@ export default function AuthPage() {
             backdropFilter: 'blur(30px)',
           }}
         >
-          {/* Gradient border верхній */}
+          {/* Gradient border */}
           <div
             className="absolute top-0 left-0 right-0 h-px"
             style={{
@@ -204,7 +231,7 @@ export default function AuthPage() {
             }}
           />
 
-          {/* Перемикач Вхід / Реєстрація */}
+          {/* Перемикач */}
           <div className="relative flex gap-2 mb-4 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
             {(['signin', 'signup'] as const).map((m) => {
               const active = mode === m;
@@ -214,7 +241,10 @@ export default function AuthPage() {
                   type="button"
                   onClick={() => setMode(m)}
                   className="relative flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors z-10"
-                  style={{ color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}
+                  style={{
+                    color: active ? '#fff' : 'rgba(255,255,255,0.5)',
+                    touchAction: 'manipulation',
+                  }}
                 >
                   {active && (
                     <motion.div
@@ -234,35 +264,25 @@ export default function AuthPage() {
           </div>
 
           {/* Email */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-            className="relative group"
-          >
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-purple-400 transition-colors" />
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-purple-400 transition-colors z-10" />
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@example.com"
-              className="w-full rounded-2xl pl-12 pr-4 py-4 text-sm transition-all"
+              className="w-full rounded-2xl pl-12 pr-4 py-4 text-sm transition-all relative"
               style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
               }}
             />
-          </motion.div>
+          </div>
 
           {/* Password */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
-            className="relative group"
-          >
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-purple-400 transition-colors" />
+          <div className="relative group">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-purple-400 transition-colors z-10" />
             <input
               type={showPassword ? 'text' : 'password'}
               required
@@ -270,7 +290,7 @@ export default function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Пароль (мін. 6)"
-              className="w-full rounded-2xl pl-12 pr-12 py-4 text-sm transition-all"
+              className="w-full rounded-2xl pl-12 pr-12 py-4 text-sm transition-all relative"
               style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -279,11 +299,12 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors z-10 p-1"
+              style={{ touchAction: 'manipulation' }}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
-          </motion.div>
+          </div>
 
           {/* Error/Success */}
           <AnimatePresence>
@@ -311,28 +332,21 @@ export default function AuthPage() {
           <motion.button
             type="submit"
             disabled={loading}
-            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden group"
             style={{
               background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
               boxShadow: '0 12px 40px rgba(124,58,237,0.4)',
+              touchAction: 'manipulation',
             }}
           >
-            {/* Shimmer ефект */}
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              initial={{ x: '-100%' }}
-              animate={{ x: '100%' }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatDelay: 3,
-                ease: 'easeInOut',
-              }}
+            {/* Shimmer — CSS */}
+            <div
+              className="shimmer-btn absolute inset-0 pointer-events-none"
               style={{
                 background:
                   'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+                width: '50%',
               }}
             />
             {loading ? (
@@ -348,7 +362,6 @@ export default function AuthPage() {
           </motion.button>
         </motion.form>
 
-        {/* Нижній текст */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
