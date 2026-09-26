@@ -94,7 +94,6 @@ export default function Dashboard() {
     await supabase.from('meals').delete().eq('id', id);
     setMeals((prev) => {
       const updated = prev.filter((m) => m.id !== id);
-      // Оновити кеш
       if (typeof window !== 'undefined' && profile) {
         sessionStorage.setItem(
           CACHE_KEY,
@@ -148,22 +147,64 @@ export default function Dashboard() {
         className="max-w-2xl mx-auto p-4"
         style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
       >
-        <header className="flex items-center justify-between mb-5 fade-up gap-2">
-          <div className="min-w-0">
-            <p className="text-xs opacity-50">Сьогодні</p>
-            <h1 className="text-xl font-bold truncate">
-              {new Date().toLocaleDateString('uk-UA', {
-                day: 'numeric',
-                month: 'long',
-              })}
-            </h1>
-            <p className="text-xs gradient-text font-medium mt-0.5">
-              {goalLabel}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <PointsCounter userId={profile.id} />
-            <FeatureMenu userId={profile.id} />
+        {/* ПРЕМІУМ STICKY HEADER */}
+        <header
+          className="sticky top-0 z-30 -mx-4 px-4 py-3 mb-5 backdrop-blur-xl"
+          style={{
+            background:
+              'linear-gradient(to bottom, rgba(7,7,12,0.95), rgba(7,7,12,0.7))',
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="min-w-0"
+            >
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-[10px] uppercase tracking-widest opacity-40 font-medium"
+              >
+                Сьогодні
+              </motion.p>
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-xl font-bold truncate tracking-tight"
+              >
+                {new Date().toLocaleDateString('uk-UA', {
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </motion.h1>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full"
+                style={{
+                  background: 'rgba(167,139,250,0.1)',
+                  border: '1px solid rgba(167,139,250,0.2)',
+                }}
+              >
+                <span className="text-[10px] font-medium gradient-text">
+                  {goalLabel}
+                </span>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-2"
+            >
+              <PointsCounter userId={profile.id} />
+              <FeatureMenu userId={profile.id} />
+            </motion.div>
           </div>
         </header>
 
@@ -217,13 +258,14 @@ export default function Dashboard() {
             </p>
           ) : (
             <AnimatePresence>
-              {meals.map((m) => (
+              {meals.map((m, idx) => (
                 <motion.div
                   key={m.id}
                   layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -100 }}
+                  transition={{ delay: idx * 0.03 }}
                   className="flex items-center gap-2.5 py-2.5 border-b border-white/5 last:border-0"
                 >
                   {m.image_url ? (
