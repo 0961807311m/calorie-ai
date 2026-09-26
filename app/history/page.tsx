@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { BottomNav } from '@/components/BottomNav';
 import { PageTransition } from '@/components/PageTransition';
-import { useToast } from '@/lib/useToast';
 import { Loader2, TrendingUp } from 'lucide-react';
 import {
   LineChart,
@@ -31,19 +30,39 @@ type DayData = {
   carbs: number;
 };
 
+function getCacheKey(period: 7 | 30) {
+  return `history-cache-${period}`;
+}
+
 export default function History() {
   const [days, setDays] = useState<DayData[]>([]);
   const [period, setPeriod] = useState<7 | 30>(7);
   const [loading, setLoading] = useState(true);
   const [norm, setNorm] = useState<number>(0);
   const router = useRouter();
-  const toast = useToast();
 
   const load = useCallback(async () => {
-    setLoading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const cacheKey = getCacheKey(period);
+
+    // 1. Кеш — миттєво
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          setDays(data.days);
+          setNorm(data.norm);
+          setLoading(false);
+        } catch {
+          setLoading(true);
+        }
+      } else {
+        setLoading(true);
+      }
+    }
+
+    // 2. Оновлення у фоні
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/auth');
       return;
@@ -95,8 +114,17 @@ export default function History() {
       }
     });
 
-    setDays(Array.from(map.values()));
+    const daysData = Array.from(map.values());
+    setDays(daysData);
     setLoading(false);
+
+    // 3. Кеш
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(
+        cacheKey,
+        JSON.stringify({ days: daysData, norm: profile?.daily_norm || 0 })
+      );
+    }
   }, [period, router]);
 
   useEffect(() => {
@@ -168,7 +196,6 @@ export default function History() {
           </div>
         </div>
 
-        {/* Калорії по днях */}
         <section className="glass p-6 mb-5 fade-up">
           <h3 className="font-semibold mb-4">🔥 Калорії по днях</h3>
           <div style={{ width: '100%', height: 220 }}>
@@ -226,7 +253,6 @@ export default function History() {
           </div>
         </section>
 
-        {/* Макронутрієнти по днях */}
         <section className="glass p-6 mb-5 fade-up">
           <h3 className="font-semibold mb-4">🥩 Макронутрієнти</h3>
           <div style={{ width: '100%', height: 220 }}>
@@ -278,7 +304,6 @@ export default function History() {
           </div>
         </section>
 
-        {/* Розподіл макросів за період — PieChart */}
         <section className="glass p-6 mb-5 fade-up">
           <h3 className="font-semibold mb-4">🥧 Розподіл макросів</h3>
           <div style={{ width: '100%', height: 260 }}>

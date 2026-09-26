@@ -11,6 +11,8 @@ import type { Profile } from '@/lib/types';
 import { motion } from 'framer-motion';
 import { Loader2, Sun, Moon, Save } from 'lucide-react';
 
+const CACHE_KEY = 'settings-cache';
+
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,10 +31,28 @@ export default function SettingsPage() {
   const toast = useToast();
 
   useEffect(() => {
+    // 1. Кеш — миттєво
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const p = JSON.parse(cached);
+          setProfile(p);
+          setSex(p.sex);
+          setAge(String(p.age));
+          setWeight(String(p.weight));
+          setHeight(String(p.height));
+          setActivity(p.activity);
+          setGoal(p.goal);
+          setTheme(p.theme || 'dark');
+          setLoading(false);
+        } catch {}
+      }
+    }
+
+    // 2. Оновлення у фоні
     async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/auth');
         return;
@@ -55,6 +75,11 @@ export default function SettingsPage() {
       setGoal(p.goal);
       setTheme(p.theme || 'dark');
       setLoading(false);
+
+      // 3. Кеш
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(p));
+      }
     }
     load();
   }, [router]);
@@ -106,6 +131,12 @@ export default function SettingsPage() {
       setSaved(true);
       toast.success('Збережено! ✅');
       setTimeout(() => setSaved(false), 2000);
+
+      // Оновити кеш
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(CACHE_KEY);
+        sessionStorage.removeItem('dashboard-cache');
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -139,7 +170,6 @@ export default function SettingsPage() {
           <p className="text-sm opacity-50">Зміни свої параметри та вигляд</p>
         </header>
 
-        {/* Тема */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,7 +198,6 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* Особисті дані */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -251,7 +280,6 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* Зберегти */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

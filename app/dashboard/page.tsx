@@ -20,6 +20,8 @@ import { PageTransition } from '@/components/PageTransition';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Loader2 } from 'lucide-react';
 
+const CACHE_KEY = 'dashboard-cache';
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -27,6 +29,21 @@ export default function Dashboard() {
   const router = useRouter();
 
   const load = useCallback(async () => {
+    // 1. МИТТЄВЕ завантаження з кешу
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          setProfile(data.profile);
+          setMeals(data.meals);
+          setLoading(false);
+          if (data.profile?.theme) applyTheme(data.profile.theme);
+        } catch {}
+      }
+    }
+
+    // 2. Оновлення у фоні
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/auth');
@@ -55,8 +72,17 @@ export default function Dashboard() {
       .gte('eaten_at', start.toISOString())
       .order('eaten_at', { ascending: false });
 
-    setMeals(m || []);
+    const mealsData = m || [];
+    setMeals(mealsData);
     setLoading(false);
+
+    // 3. Оновлюємо кеш
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ profile: p, meals: mealsData })
+      );
+    }
   }, [router]);
 
   useEffect(() => {
@@ -66,14 +92,33 @@ export default function Dashboard() {
   async function deleteMeal(id: string) {
     if (!confirm('Видалити страву?')) return;
     await supabase.from('meals').delete().eq('id', id);
-    setMeals((prev) => prev.filter((m) => m.id !== id));
+    setMeals((prev) => {
+      const updated = prev.filter((m) => m.id !== id);
+      // Оновити кеш
+      if (typeof window !== 'undefined' && profile) {
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ profile, meals: updated })
+        );
+      }
+      return updated;
+    });
   }
 
   async function updateMealCalories(id: string, newCalories: number) {
     await supabase.from('meals').update({ calories: newCalories }).eq('id', id);
-    setMeals((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, calories: newCalories } : m))
-    );
+    setMeals((prev) => {
+      const updated = prev.map((m) =>
+        m.id === id ? { ...m, calories: newCalories } : m
+      );
+      if (typeof window !== 'undefined' && profile) {
+        sessionStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ profile, meals: updated })
+        );
+      }
+      return updated;
+    });
   }
 
   if (loading || !profile) {
