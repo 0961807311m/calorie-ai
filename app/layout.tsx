@@ -3,6 +3,7 @@ import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { UpdateBanner } from '@/components/UpdateBanner';
+import { SplashController } from '@/components/SplashController';
 import { ToastProvider } from '@/lib/useToast';
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function RootLayout({
           </ToastProvider>
         </ThemeProvider>
         <PWARegister />
+        <SplashController />
       </body>
     </html>
   );
